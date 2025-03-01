@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,10 +9,10 @@ import { StatusBar } from 'expo-status-bar';
 
 // Mock transaction data
 const transactions = [
-  { id: '1', user: 'Alex Kim', action: 'paid', target: 'You', amount: '$25.00', description: '🍕 Pizza night', time: '2h ago' },
-  { id: '2', user: 'You', action: 'paid', target: 'Taylor Swift', amount: '$12.50', description: '🎸 Concert tickets', time: '5h ago' },
-  { id: '3', user: 'Morgan Lee', action: 'charged', target: 'You', amount: '$8.75', description: '☕️ Coffee run', time: '1d ago' },
-  { id: '4', user: 'Jordan Bell', action: 'paid', target: 'You', amount: '$45.00', description: '🏠 Utilities', time: '2d ago' },
+  { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Leg Day', time: '2h ago' },
+  { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Complete homework by Thursday 12am', time: '5h ago' },
+  { id: '3', user: 'Morgan Lee', action: 'fulfilled promise to', target: 'Gerald', amount: '+12 points', description: 'Morning run', time: '1d ago' },
+  { id: '4', user: 'Jordan Bell', action: 'has a timed-out promise to', target: 'You', amount: '-20 points', description: 'Assignment completed', time: '2d ago' },
   { id: '5', user: 'You', action: 'charged', target: 'Pat Johnson', amount: '$15.30', description: '🚕 Uber', time: '3d ago' },
   { id: '6', user: 'Riley Chen', action: 'paid', target: 'You', amount: '$32.80', description: '🍔 Dinner', time: '4d ago' },
   { id: '7', user: 'You', action: 'paid', target: 'Sam Adams', amount: '$18.50', description: '🎬 Movie tickets', time: '5d ago' },
@@ -37,10 +38,39 @@ const TransactionItem = ({ item }) => (
 );
 
 export default function HomeScreen() {
+  const [balance, setBalance] = useState<number | string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/balance'); // Ensure this matches backend
+        const data = await response.json();
+        
+        console.log("Fetched balance:", data); // Log response data
+        if (data && typeof data.balance === "number") {
+          setBalance(data.balance); // Ensure we're setting the balance
+        } else {
+          console.error("Invalid balance format:", data);
+          setBalance(null); // Handle incorrect format
+        }
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        setBalance(null); // Ensure error handling doesn't break the UI
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchBalance();
+  }, []);
+  
+  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      
+
       {/* Header */}
       <ThemedView style={styles.header}>
         <ThemedView style={styles.headerContent}>
@@ -56,11 +86,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
-      
+
       {/* Balance Card */}
       <ThemedView style={styles.balanceCard}>
         <ThemedText type="defaultSemiBold">Your Balance</ThemedText>
-        <ThemedText type="title">$248.65</ThemedText>
+        {loading ? (
+          <ActivityIndicator size="small" color="#3D95CE" />
+        ) : (
+          <ThemedText type="title">{balance ? `$${balance}` : 'N/A'}</ThemedText>
+        )}
         <ThemedView style={styles.actionButtonsContainer}>
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="arrow-up-outline" size={20} color="white" />
@@ -72,7 +106,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
-      
+
       {/* Transactions Feed */}
       <ThemedView style={styles.transactionsContainer}>
         <ThemedView style={styles.transactionsHeader}>
@@ -81,7 +115,7 @@ export default function HomeScreen() {
             <ThemedText style={styles.seeAllText}>See All</ThemedText>
           </TouchableOpacity>
         </ThemedView>
-        
+
         <FlatList
           data={transactions}
           renderItem={({ item }) => <TransactionItem item={item} />}
@@ -90,7 +124,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.transactionsList}
         />
       </ThemedView>
-      
+
       {/* Floating Action Button */}
       <TouchableOpacity style={styles.floatingActionButton}>
         <Ionicons name="scan-outline" size={28} color="white" />
