@@ -9,13 +9,13 @@ import { StatusBar } from 'expo-status-bar';
 
 // Mock transaction data
 const transactions = [
-  { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Leg Day', time: '2h ago' },
-  { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Complete homework by Thursday 12am', time: '5h ago' },
+  { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Completing Seattle 5k', time: '2h ago' },
+  { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Finishing homework by Thursday 12am', time: '5h ago' },
   { id: '3', user: 'Morgan Lee', action: 'fulfilled promise to', target: 'Gerald', amount: '+12 points', description: 'Morning run', time: '1d ago' },
-  { id: '4', user: 'Jordan Bell', action: 'has a timed-out promise to', target: 'You', amount: '-20 points', description: 'Assignment completed', time: '2d ago' },
-  { id: '5', user: 'You', action: 'charged', target: 'Pat Johnson', amount: '$15.30', description: '🚕 Uber', time: '3d ago' },
-  { id: '6', user: 'Riley Chen', action: 'paid', target: 'You', amount: '$32.80', description: '🍔 Dinner', time: '4d ago' },
-  { id: '7', user: 'You', action: 'paid', target: 'Sam Adams', amount: '$18.50', description: '🎬 Movie tickets', time: '5d ago' },
+  { id: '4', user: 'Jordan Bell', action: 'has a timed-out promise to', target: 'You', amount: '-20 points', description: 'Mile Run', time: '2d ago' },
+  { id: '5', user: 'You', action: 'have a timed-out promise to', target: 'Morgan Lee', amount: '-15 points', description: 'Doing stats homework', time: '3d ago' },
+  { id: '6', user: 'Riley Chen', action: 'promised', target: 'You', amount: '5 points', description: 'Morning yoga', time: '4d ago' },
+  { id: '7', user: 'You', action: 'promised', target: 'Sam Adams', amount: '10 points', description: 'Going to career fair', time: '5d ago' },
 ];
 
 // Transaction Item Component
@@ -93,7 +93,7 @@ export default function HomeScreen() {
         {loading ? (
           <ActivityIndicator size="small" color="#3D95CE" />
         ) : (
-          <ThemedText type="title">{balance ? `$${balance}` : 'N/A'}</ThemedText>
+          <ThemedText type="title">{balance ? `${balance} points` : 'N/A'}</ThemedText>
         )}
         <ThemedView style={styles.actionButtonsContainer}>
           <TouchableOpacity style={styles.actionButton}>
