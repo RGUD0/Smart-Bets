@@ -11,7 +11,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  const user = { id: 'dummy', name: 'Test User' };  
+  const user = null;  
   if (!user) {
     return <Redirect href="/login" />;
   }

@@ -1,18 +1,50 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Text, Image, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-const Login = ({ navigation }) => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   const handleLogin = () => {
-    if (email === 'user@example.com' && password === 'password') {
-      Alert.alert('Login Successful', 'Welcome back!');
-      navigation.navigate('Home'); // Navigate to the Home screen after successful login
+    console.log('handleLogin triggered', email, password);
+    
+    // For testing purpose, accept any non-empty input
+    if (email.trim() && password.trim()) {
+      console.log('Login credentials accepted');
+      
+      // Try direct navigation first
+      try {
+        console.log('Attempting navigation to (tabs)');
+        router.replace('/(tabs)');
+        console.log('Navigation command executed');
+      } catch (error) {
+        console.error('Direct navigation failed:', error);
+        
+        // If direct navigation fails, show alert with navigation in callback
+        Alert.alert('Login Successful', 'Welcome back!', [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              console.log('Alert OK pressed, attempting navigation');
+              setTimeout(() => {
+                try {
+                  router.replace('/(tabs)');
+                } catch (navError) {
+                  console.error('Navigation after alert failed:', navError);
+                  // Last resort fallback
+                  router.navigate('/');
+                }
+              }, 100); // Small delay to ensure alert is dismissed
+            }
+          }
+        ]);
+      }
     } else {
-      Alert.alert('Login Failed', 'Invalid email or password');
+      Alert.alert('Login Failed', 'Please enter both email and password');
     }
   };
 
@@ -20,7 +52,7 @@ const Login = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Image
-          source={require('@/assets/images/partial-react-logo.png')} // Replace with your logo
+          source={require('../assets/images/partial-react-logo.png')}
           style={styles.logo}
         />
         <Text style={styles.title}>Welcome Back</Text>
@@ -57,18 +89,22 @@ const Login = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          onPress={handleLogin}
+          activeOpacity={0.7}
+        >
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+        <TouchableOpacity onPress={() => router.push('/forgot-password')}>
           <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+        <TouchableOpacity onPress={() => router.push('/signup')}>
           <Text style={styles.signUpText}>Sign Up</Text>
         </TouchableOpacity>
       </View>
