@@ -1,100 +1,241 @@
-import { Image, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-// Mock transaction data
-const transactions = [
-  { id: '1', user: 'Alex Kim', action: 'paid', target: 'You', amount: '$25.00', description: '🍕 Pizza night', time: '2h ago' },
-  { id: '2', user: 'You', action: 'paid', target: 'Taylor Swift', amount: '$12.50', description: '🎸 Concert tickets', time: '5h ago' },
-  { id: '3', user: 'Morgan Lee', action: 'charged', target: 'You', amount: '$8.75', description: '☕️ Coffee run', time: '1d ago' },
-  { id: '4', user: 'Jordan Bell', action: 'paid', target: 'You', amount: '$45.00', description: '🏠 Utilities', time: '2d ago' },
-  { id: '5', user: 'You', action: 'charged', target: 'Pat Johnson', amount: '$15.30', description: '🚕 Uber', time: '3d ago' },
-  { id: '6', user: 'Riley Chen', action: 'paid', target: 'You', amount: '$32.80', description: '🍔 Dinner', time: '4d ago' },
-  { id: '7', user: 'You', action: 'paid', target: 'Sam Adams', amount: '$18.50', description: '🎬 Movie tickets', time: '5d ago' },
+// Mock promises data
+const pendingPromises = [
+  { id: '1', creator: 'Alex Kim', recipient: 'You', points: 50, description: '🏃 Go for a run together', deadline: '3 days left', status: 'pending' },
+  { id: '2', creator: 'You', recipient: 'Morgan Lee', points: 75, description: '📚 Finish reading book club selection', deadline: '5 days left', status: 'pending' },
+  { id: '3', creator: 'Jordan Bell', recipient: 'You', points: 30, description: '🧹 Clean the apartment', deadline: '1 day left', status: 'pending' },
 ];
 
-// Transaction Item Component
-const TransactionItem = ({ item }) => (
-  <ThemedView style={styles.transactionItem}>
+const pastPromises = [
+  { id: '4', creator: 'You', recipient: 'Taylor Swift', points: 40, description: '🎸 Practice guitar for 30 minutes daily', deadline: 'Completed', status: 'completed' },
+  { id: '5', creator: 'Riley Chen', recipient: 'You', points: 60, description: '🥗 Stick to meal prep plan', deadline: 'Failed', status: 'failed' },
+  { id: '6', creator: 'You', recipient: 'Sam Adams', points: 25, description: '📱 No social media for a week', deadline: 'Completed', status: 'completed' },
+];
+
+// Promise Item Component
+const PromiseItem = ({ item, onAccept, onComplete, onFail }) => (
+  <ThemedView style={styles.promiseItem}>
     <ThemedView style={styles.avatarContainer}>
-      <ThemedText style={styles.avatarText}>{item.user.charAt(0)}</ThemedText>
+      <ThemedText style={styles.avatarText}>{item.creator.charAt(0)}</ThemedText>
     </ThemedView>
-    <ThemedView style={styles.transactionContent}>
-      <ThemedView style={styles.transactionHeader}>
+    <ThemedView style={styles.promiseContent}>
+      <ThemedView style={styles.promiseHeader}>
         <ThemedText type="defaultSemiBold">
-          {item.user} {item.action} {item.target}
+          {item.creator} → {item.recipient}
         </ThemedText>
-        <ThemedText style={styles.timeText}>{item.time}</ThemedText>
+        <ThemedText style={styles.pointsText}>{item.points} pts</ThemedText>
       </ThemedView>
       <ThemedText>{item.description}</ThemedText>
+      <ThemedView style={styles.promiseFooter}>
+        <ThemedText style={
+          item.status === 'completed' ? styles.completedText : 
+          item.status === 'failed' ? styles.failedText : 
+          styles.pendingText
+        }>
+          {item.deadline}
+        </ThemedText>
+        
+        {item.status === 'pending' && item.recipient === 'You' && item.creator !== 'You' && (
+          <TouchableOpacity style={styles.acceptButton} onPress={() => onAccept && onAccept(item)}>
+            <ThemedText style={styles.buttonText}>Accept</ThemedText>
+          </TouchableOpacity>
+        )}
+        
+        {item.status === 'pending' && ((item.creator === 'You' && item.recipient !== 'You') || (item.recipient === 'You' && item.creator !== 'You')) && (
+          <ThemedView style={styles.actionButtons}>
+            <TouchableOpacity style={styles.completeButton} onPress={() => onComplete && onComplete(item)}>
+              <ThemedText style={styles.buttonText}>Complete</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.failButton} onPress={() => onFail && onFail(item)}>
+              <ThemedText style={styles.buttonText}>Fail</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+        )}
+      </ThemedView>
     </ThemedView>
-    <ThemedText style={styles.amountText}>{item.amount}</ThemedText>
   </ThemedView>
 );
 
 export default function HomeScreen() {
+  const [activeTab, setActiveTab] = useState('pending');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newPromise, setNewPromise] = useState({
+    recipient: '',
+    points: '',
+    description: '',
+    deadline: ''
+  });
+
+  // Points calculation
+  const earnedPoints = pastPromises
+    .filter(p => p.recipient === 'You' && p.status === 'completed')
+    .reduce((sum, p) => sum + p.points, 0);
+  
+  const lostPoints = pastPromises
+    .filter(p => p.creator === 'You' && p.status === 'failed')
+    .reduce((sum, p) => sum + p.points, 0);
+  
+  const currentPoints = earnedPoints - lostPoints;
+  
+  const pendingOutgoingPoints = pendingPromises
+    .filter(p => p.creator === 'You')
+    .reduce((sum, p) => sum + p.points, 0);
+  
+  const pendingIncomingPoints = pendingPromises
+    .filter(p => p.recipient === 'You')
+    .reduce((sum, p) => sum + p.points, 0);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header */}
+      {/* Header with Points Summary */}
       <ThemedView style={styles.header}>
-        <ThemedView style={styles.headerContent}>
+        <ThemedView style={styles.headerLeft}>
           <TouchableOpacity>
             <Image 
               source={require('@/assets/images/partial-react-logo.png')} 
               style={styles.profilePic} 
             />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>Venmo</ThemedText>
-          <TouchableOpacity>
-            <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
-          </TouchableOpacity>
-        </ThemedView>
-      </ThemedView>
-      
-      {/* Balance Card */}
-      <ThemedView style={styles.balanceCard}>
-        <ThemedText type="defaultSemiBold">Your Balance</ThemedText>
-        <ThemedText type="title">$248.65</ThemedText>
-        <ThemedView style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-up-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Pay</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-down-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Request</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
-      </ThemedView>
-      
-      {/* Transactions Feed */}
-      <ThemedView style={styles.transactionsContainer}>
-        <ThemedView style={styles.transactionsHeader}>
-          <ThemedText type="subtitle">Recent Activity</ThemedText>
-          <TouchableOpacity>
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
-          </TouchableOpacity>
+          <ThemedText type="title" style={styles.headerTitle}>PromisePoints</ThemedText>
         </ThemedView>
         
+        <ThemedView style={styles.pointsSummary}>
+          <ThemedText style={styles.pointsLabel}>Points: </ThemedText>
+          <ThemedText style={styles.pointsValue}>{currentPoints}</ThemedText>
+          <ThemedText style={styles.pendingPointsText}>
+            (+{pendingIncomingPoints} / -{pendingOutgoingPoints})
+          </ThemedText>
+        </ThemedView>
+      </ThemedView>
+      
+      {/* Tabs */}
+      <ThemedView style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'pending' && styles.activeTab]} 
+          onPress={() => setActiveTab('pending')}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
+            Pending
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'past' && styles.activeTab]} 
+          onPress={() => setActiveTab('past')}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>
+            Past
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+      
+      {/* Promises List */}
+      <ThemedView style={styles.promisesContainer}>
         <FlatList
-          data={transactions}
-          renderItem={({ item }) => <TransactionItem item={item} />}
+          data={activeTab === 'pending' ? pendingPromises : pastPromises}
+          renderItem={({ item }) => (
+            <PromiseItem 
+              item={item} 
+              onAccept={(item) => console.log('Accepted', item)}
+              onComplete={(item) => console.log('Completed', item)}
+              onFail={(item) => console.log('Failed', item)}
+            />
+          )}
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.transactionsList}
+          contentContainerStyle={styles.promisesList}
         />
       </ThemedView>
       
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.floatingActionButton}>
-        <Ionicons name="scan-outline" size={28} color="white" />
+      {/* Floating Create Promise Button */}
+      <TouchableOpacity 
+        style={styles.floatingActionButton}
+        onPress={() => setModalVisible(true)}
+      >
+        <Ionicons name="add-outline" size={30} color="white" />
       </TouchableOpacity>
+      
+      {/* Create Promise Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <ThemedView style={styles.modalOverlay}>
+          <ThemedView style={styles.modalContainer}>
+            <ThemedView style={styles.modalHeader}>
+              <ThemedText type="subtitle">Create New Promise</ThemedText>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close-outline" size={24} color="#000" />
+              </TouchableOpacity>
+            </ThemedView>
+            
+            <ThemedView style={styles.formGroup}>
+              <ThemedText style={styles.label}>Recipient</ThemedText>
+              <TextInput
+                style={styles.input}
+                placeholder="Who is this promise with?"
+                value={newPromise.recipient}
+                onChangeText={(text) => setNewPromise({...newPromise, recipient: text})}
+              />
+            </ThemedView>
+            
+            <ThemedView style={styles.formGroup}>
+              <ThemedText style={styles.label}>Points at Stake</ThemedText>
+              <TextInput
+                style={styles.input}
+                placeholder="How many points?"
+                keyboardType="numeric"
+                value={newPromise.points}
+                onChangeText={(text) => setNewPromise({...newPromise, points: text})}
+              />
+            </ThemedView>
+            
+            <ThemedView style={styles.formGroup}>
+              <ThemedText style={styles.label}>Description</ThemedText>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="What are you promising to do?"
+                multiline={true}
+                numberOfLines={3}
+                value={newPromise.description}
+                onChangeText={(text) => setNewPromise({...newPromise, description: text})}
+              />
+            </ThemedView>
+            
+            <ThemedView style={styles.formGroup}>
+              <ThemedText style={styles.label}>Deadline</ThemedText>
+              <TextInput
+                style={styles.input}
+                placeholder="When will this be completed by?"
+                value={newPromise.deadline}
+                onChangeText={(text) => setNewPromise({...newPromise, deadline: text})}
+              />
+            </ThemedView>
+            
+            <TouchableOpacity 
+              style={styles.submitButton}
+              onPress={() => {
+                console.log('New Promise:', newPromise);
+                setModalVisible(false);
+                setNewPromise({recipient: '', points: '', description: '', deadline: ''});
+              }}
+            >
+              <ThemedText style={styles.submitButtonText}>Create Promise</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+        </ThemedView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -105,83 +246,99 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F7',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
-  headerContent: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   headerTitle: {
     color: '#3D95CE',
-    fontSize: 20,
+    fontSize: 18,
+    marginLeft: 8,
   },
   profilePic: {
-    height: 36,
-    width: 36,
-    borderRadius: 18,
+    height: 32,
+    width: 32,
+    borderRadius: 16,
   },
-  balanceCard: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-  },
-  actionButton: {
-    backgroundColor: '#3D95CE',
+  pointsSummary: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 24,
-    gap: 8,
+    backgroundColor: '#E6F2FA',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  actionButtonText: {
-    color: 'white',
+  pointsLabel: {
+    fontSize: 12,
+    color: '#555555',
+  },
+  pointsValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#3D95CE',
+  },
+  pendingPointsText: {
+    fontSize: 10,
+    color: '#777777',
+    marginLeft: 4,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  activeTab: {
+    backgroundColor: '#E6F2FA',
+    borderBottomWidth: 2,
+    borderBottomColor: '#3D95CE',
+  },
+  tabText: {
+    color: '#888888',
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: '#3D95CE',
     fontWeight: '600',
   },
-  transactionsContainer: {
+  promisesContainer: {
     flex: 1,
     marginHorizontal: 16,
   },
-  transactionsList: {
-    paddingBottom: 80, // Give space for floating action button
+  promisesList: {
+    paddingBottom: 80, // Space for floating button
   },
-  transactionsHeader: {
+  promiseItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  seeAllText: {
-    color: '#3D95CE',
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
-    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+    borderRadius: 8,
   },
   avatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#3D95CE',
     alignItems: 'center',
     justifyContent: 'center',
@@ -190,19 +347,63 @@ const styles = StyleSheet.create({
   avatarText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 14,
   },
-  transactionContent: {
+  promiseContent: {
     flex: 1,
   },
-  transactionHeader: {
+  promiseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  timeText: {
+  pointsText: {
+    fontWeight: '600',
+    color: '#3D95CE',
+  },
+  promiseFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  pendingText: {
     fontSize: 12,
-    color: '#999999',
+    color: '#FF9800',
   },
-  amountText: {
+  completedText: {
+    fontSize: 12,
+    color: '#4CAF50',
+  },
+  failedText: {
+    fontSize: 12,
+    color: '#F44336',
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  completeButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  failButton: {
+    backgroundColor: '#F44336',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: '600',
   },
   floatingActionButton: {
@@ -220,5 +421,59 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    width: '100%',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#3D95CE',
+    paddingVertical: 12,
+    borderRadius: 24,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  submitButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
