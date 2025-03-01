@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 
@@ -10,6 +10,11 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+
+  const user = { id: 'dummy', name: 'Test User' };  
+  if (!user) {
+    return <Redirect href="/login" />;
+  }
 
   return (
     <Tabs
