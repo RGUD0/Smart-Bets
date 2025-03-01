@@ -7,11 +7,12 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  const user = null;  
+  const user = true;  
   if (!user) {
     return <Redirect href="/login" />;
   }
@@ -43,6 +44,15 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          // Alternative if IconSymbol doesn't have person.fill:
+          // tabBarIcon: ({ color }) => <Ionicons name="person" size={28} color={color} />,
         }}
       />
     </Tabs>
