@@ -1,23 +1,21 @@
 import { Image, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-// Mock promises data
-const pendingPromises = [
-  { id: '1', creator: 'Alex Kim', recipient: 'You', points: 50, description: '🏃 Go for a run together', deadline: '3 days left', status: 'pending' },
-  { id: '2', creator: 'You', recipient: 'Morgan Lee', points: 75, description: '📚 Finish reading book club selection', deadline: '5 days left', status: 'pending' },
-  { id: '3', creator: 'Jordan Bell', recipient: 'You', points: 30, description: '🧹 Clean the apartment', deadline: '1 day left', status: 'pending' },
-];
-
-const pastPromises = [
-  { id: '4', creator: 'You', recipient: 'Taylor Swift', points: 40, description: '🎸 Practice guitar for 30 minutes daily', deadline: 'Completed', status: 'completed' },
-  { id: '5', creator: 'Riley Chen', recipient: 'You', points: 60, description: '🥗 Stick to meal prep plan', deadline: 'Failed', status: 'failed' },
-  { id: '6', creator: 'You', recipient: 'Sam Adams', points: 25, description: '📱 No social media for a week', deadline: 'Completed', status: 'completed' },
+// Mock transaction data
+const transactions = [
+  { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Leg Day', time: '2h ago' },
+  { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Complete homework by Thursday 12am', time: '5h ago' },
+  { id: '3', user: 'Morgan Lee', action: 'fulfilled promise to', target: 'Gerald', amount: '+12 points', description: 'Morning run', time: '1d ago' },
+  { id: '4', user: 'Jordan Bell', action: 'has a timed-out promise to', target: 'You', amount: '-20 points', description: 'Assignment completed', time: '2d ago' },
+  { id: '5', user: 'You', action: 'charged', target: 'Pat Johnson', amount: '$15.30', description: '🚕 Uber', time: '3d ago' },
+  { id: '6', user: 'Riley Chen', action: 'paid', target: 'You', amount: '$32.80', description: '🍔 Dinner', time: '4d ago' },
+  { id: '7', user: 'You', action: 'paid', target: 'Sam Adams', amount: '$18.50', description: '🎬 Movie tickets', time: '5d ago' },
 ];
 
 // Promise Item Component
@@ -65,39 +63,40 @@ const PromiseItem = ({ item, onAccept, onComplete, onFail }) => (
 );
 
 export default function HomeScreen() {
-  const [activeTab, setActiveTab] = useState('pending');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newPromise, setNewPromise] = useState({
-    recipient: '',
-    points: '',
-    description: '',
-    deadline: ''
-  });
+  const [balance, setBalance] = useState<number | string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Points calculation
-  const earnedPoints = pastPromises
-    .filter(p => p.recipient === 'You' && p.status === 'completed')
-    .reduce((sum, p) => sum + p.points, 0);
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/balance'); // Ensure this matches backend
+        const data = await response.json();
+        
+        console.log("Fetched balance:", data); // Log response data
+        if (data && typeof data.balance === "number") {
+          setBalance(data.balance); // Ensure we're setting the balance
+        } else {
+          console.error("Invalid balance format:", data);
+          setBalance(null); // Handle incorrect format
+        }
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        setBalance(null); // Ensure error handling doesn't break the UI
+      } finally {
+        setLoading(false);
+      }
+    };
   
-  const lostPoints = pastPromises
-    .filter(p => p.creator === 'You' && p.status === 'failed')
-    .reduce((sum, p) => sum + p.points, 0);
+    fetchBalance();
+  }, []);
   
-  const currentPoints = earnedPoints - lostPoints;
   
-  const pendingOutgoingPoints = pendingPromises
-    .filter(p => p.creator === 'You')
-    .reduce((sum, p) => sum + p.points, 0);
-  
-  const pendingIncomingPoints = pendingPromises
-    .filter(p => p.recipient === 'You')
-    .reduce((sum, p) => sum + p.points, 0);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      
-      {/* Header with Points Summary */}
+
+      {/* Header */}
       <ThemedView style={styles.header}>
         <ThemedView style={styles.headerLeft}>
           <TouchableOpacity>
@@ -106,40 +105,42 @@ export default function HomeScreen() {
               style={styles.profilePic} 
             />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>PromisePoints</ThemedText>
-        </ThemedView>
-        
-        <ThemedView style={styles.pointsSummary}>
-          <ThemedText style={styles.pointsLabel}>Points: </ThemedText>
-          <ThemedText style={styles.pointsValue}>{currentPoints}</ThemedText>
-          <ThemedText style={styles.pendingPointsText}>
-            (+{pendingIncomingPoints} / -{pendingOutgoingPoints})
-          </ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>Venmo</ThemedText>
+          <TouchableOpacity>
+            <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
+          </TouchableOpacity>
         </ThemedView>
       </ThemedView>
-      
-      {/* Tabs */}
-      <ThemedView style={styles.tabsContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'pending' && styles.activeTab]} 
-          onPress={() => setActiveTab('pending')}
-        >
-          <ThemedText style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
-            Pending
-          </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'past' && styles.activeTab]} 
-          onPress={() => setActiveTab('past')}
-        >
-          <ThemedText style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>
-            Past
-          </ThemedText>
-        </TouchableOpacity>
+
+      {/* Balance Card */}
+      <ThemedView style={styles.balanceCard}>
+        <ThemedText type="defaultSemiBold">Your Balance</ThemedText>
+        {loading ? (
+          <ActivityIndicator size="small" color="#3D95CE" />
+        ) : (
+          <ThemedText type="title">{balance ? `$${balance}` : 'N/A'}</ThemedText>
+        )}
+        <ThemedView style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="arrow-up-outline" size={20} color="white" />
+            <ThemedText style={styles.actionButtonText}>Pay</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="arrow-down-outline" size={20} color="white" />
+            <ThemedText style={styles.actionButtonText}>Request</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
       </ThemedView>
-      
-      {/* Promises List */}
-      <ThemedView style={styles.promisesContainer}>
+
+      {/* Transactions Feed */}
+      <ThemedView style={styles.transactionsContainer}>
+        <ThemedView style={styles.transactionsHeader}>
+          <ThemedText type="subtitle">Recent Activity</ThemedText>
+          <TouchableOpacity>
+            <ThemedText style={styles.seeAllText}>See All</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
         <FlatList
           data={activeTab === 'pending' ? pendingPromises : pastPromises}
           renderItem={({ item }) => (
@@ -155,13 +156,10 @@ export default function HomeScreen() {
           contentContainerStyle={styles.promisesList}
         />
       </ThemedView>
-      
-      {/* Floating Create Promise Button */}
-      <TouchableOpacity 
-        style={styles.floatingActionButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Ionicons name="add-outline" size={30} color="white" />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity style={styles.floatingActionButton}>
+        <Ionicons name="scan-outline" size={28} color="white" />
       </TouchableOpacity>
       
       {/* Create Promise Modal */}
