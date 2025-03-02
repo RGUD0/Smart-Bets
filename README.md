@@ -1,2 +1,2 @@
 # Training-Gate
- A mobile web app that keeps track of fitness goals with AI implementation.
+A cross-platform app that promotes healthy habits through support and accountability with friends. 
