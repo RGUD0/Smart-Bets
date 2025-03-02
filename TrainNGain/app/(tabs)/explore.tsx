@@ -7,13 +7,25 @@ import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 
 // Mock friends data
-const friends = [
+export const friends = [
   { id: '1', name: 'Alex Kim', username: '@alexkim', isFollowing: true, points: '20',},
   { id: '2', name: 'Taylor Swift', username: '@taylorswift', isFollowing: true, points: '10'},
   { id: '3', name: 'Morgan Lee', username: '@morganlee', isFollowing: false, points: '15' },
   { id: '4', name: 'Jordan Bell', username: '@jordanbell', isFollowing: true, points: '10'},
   { id: '5', name: 'Pat Johnson', username: '@patjohnson', isFollowing: true, points: '20'},
 ];
+
+export const getFriends = () => {
+  return friends;
+}
+
+export type Friend = {
+  id: string;
+  name: string;
+  username: string;
+  isFollowing: boolean;
+  points: string;
+};
 
 export default function FriendsScreen() {
   return (

@@ -1,6 +1,7 @@
-import { Image, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
+import { Button, View, Text, Modal, Image, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
+import { getFriends } from './explore';
 import { ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -17,6 +18,19 @@ const transactions = [
   { id: '6', user: 'Riley Chen', action: 'paid', target: 'You', amount: '$32.80', description: '🍔 Dinner', time: '4d ago' },
   { id: '7', user: 'You', action: 'paid', target: 'Sam Adams', amount: '$18.50', description: '🎬 Movie tickets', time: '5d ago' },
 ];
+
+const FriendItem = ({ item }) => {
+  return (
+    <View>
+      <Text>Name: {item.name}</Text>
+      <Text>Username: {item.username}</Text>
+      <Text>isFollowing: {item.isFollowing}</Text>
+      <Text>Points: {item.points}</Text>
+      <Button title="Make Promise!"/>
+    </View>
+  );
+};
+
 
 // Transaction Item Component
 const TransactionItem = ({ item }) => (
@@ -40,8 +54,22 @@ const TransactionItem = ({ item }) => (
 export default function HomeScreen() {
   const [balance, setBalance] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDialogVisible, setDialogVisible] = useState(false);
+  const [friends, setFriends] = useState()
+
+  const showDialog = () => {
+    setDialogVisible(true);
+  };
+
+  const hideDialog = () => {
+    setDialogVisible(false);
+  };
 
   useEffect(() => {
+
+    const fetchedFriends = getFriends()
+    setFriends(fetchedFriends)
+    
     const fetchBalance = async () => {
       try {
         const response = await fetch('http://localhost:5001/api/balance'); // Ensure this matches backend
@@ -80,7 +108,7 @@ export default function HomeScreen() {
               style={styles.profilePic} 
             />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>Venmo</ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>Train N Gain</ThemedText>
           <TouchableOpacity>
             <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
           </TouchableOpacity>
@@ -97,12 +125,36 @@ export default function HomeScreen() {
         )}
         <ThemedView style={styles.actionButtonsContainer}>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-up-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Pay</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-down-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Request</ThemedText>
+
+            {/* Button to make promises */}
+            <Button title="Make Promise" onPress={showDialog}/>
+
+            {/* Dialog to show friends to make promises to */}
+            <Modal
+              visible={isDialogVisible}
+              transparent={true}
+              animationType="slide"
+              onRequestClose={hideDialog}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Friends List</Text>
+
+                  <FlatList
+                    data={friends}
+                    renderItem={(item) => <FriendItem item={item} />}
+                    keyExtractor={item => item.id}
+                    showsVerticalScrollIndicator={false}
+                  />
+
+                  {/* Close Button */}
+                  <TouchableOpacity style={styles.dialogButton} onPress={hideDialog}>
+                    <Text style={styles.buttonText}>Close</Text>
+                  </TouchableOpacity>
+                  
+                </View>
+              </View>
+            </Modal>
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
@@ -254,5 +306,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+
+// Dialog styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  dialogButton: {
+    width: '100%',
+    padding: 10,
+    marginVertical: 5,
+    backgroundColor: '#6200ee',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
   },
 });
