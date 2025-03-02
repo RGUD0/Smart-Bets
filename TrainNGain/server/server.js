@@ -2,6 +2,25 @@ const http = require('http');
 const sqlite3 = require('sqlite3').verbose();
 const { setupAuthRoutes, verifyToken } = require('./authRoutes');
 
+const {Server} = require('socket.io');
+
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('A user connected');
+  socket.on('sendMessage', (message) => {
+    io.emit('recieveMessage', message);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
+});
+
 // Create and open an SQLite database
 const db = new sqlite3.Database('./database.db', (err) => {
   if (err) {
