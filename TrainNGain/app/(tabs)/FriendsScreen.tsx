@@ -7,12 +7,12 @@ const FriendsScreen = () => {
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { authFetch } = useAuth(); // <-- Access authFetch from context
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch friends from API when the component mounts
     const fetchFriends = async () => {
       try {
-        const data = await authFetch('/api/friends'); // Use authFetch here
+        const data = await authFetch('/api/friends');
         if (data && data.friends) {
           setFriends(data.friends);
         } else {
@@ -21,28 +21,17 @@ const FriendsScreen = () => {
       } catch (error) {
         console.error('Error fetching friends:', error);
         Alert.alert('Error', 'Something went wrong');
+      } finally {
+        setLoading(false);
       }
     };
-  
     fetchFriends();
-  }, []); // Empty dependency array means this runs once when the component mounts
+  }, []);
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
   
-
-  // Function to add a new friend (mock implementation)
-  const addFriend = () => {
-    if (searchQuery.trim() === '') return;
-
-    const newFriend = {
-      id: String(friends.length + 1),
-      name: searchQuery,
-      status: '🆕 New friend',
-      avatar: 'https://placekitten.com/103/103', // Replace with actual image URL
-      isFavorite: false,
-    };
-
-    setFriends([...friends, newFriend]);
-    setSearchQuery('');
-  };
 
   // Function to remove a friend
   const removeFriend = (id) => {
@@ -87,9 +76,6 @@ const FriendsScreen = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <TouchableOpacity style={styles.addButton} onPress={addFriend}>
-          <Ionicons name="add" size={24} color="white" />
-        </TouchableOpacity>
       </View>
 
       {/* Friends List */}
