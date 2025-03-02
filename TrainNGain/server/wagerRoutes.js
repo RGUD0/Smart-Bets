@@ -139,82 +139,162 @@ function setupWagerRoutes(server, db) {
     
     // Get wagers for a user (both sent and received)
     else if (req.url === '/api/wagers' && req.method === 'GET') {
-      const applyAuth = (req, res) => {
-        verifyToken(req, res, () => {
-          const userId = req.user.id;
-          
-          db.all(
-            "SELECT * FROM wagers WHERE creator_id = ? OR receiver_id = ? ORDER BY save_time DESC",
-            [userId, userId],
-            (err, rows) => {
-              if (err) {
-                console.error('Database error:', err.message);
-                if (!res.headersSent) {
-                  res.writeHead(500);
-                  return res.end(JSON.stringify({ message: 'Database error' }));
+        const applyAuth = (req, res) => {
+          verifyToken(req, res, () => {
+            const userId = req.user.id;
+            const currentTime = new Date().getTime();
+            
+            // First, update any expired wagers
+            db.run(
+              "UPDATE wagers SET status = 'expired' WHERE expiration_time < ? AND status != 'expired' AND status != 'completed'",
+              [currentTime],
+              (updateErr) => {
+                if (updateErr) {
+                  console.error('Database error updating expired wagers:', updateErr.message);
+                  if (!res.headersSent) {
+                    res.writeHead(500);
+                    return res.end(JSON.stringify({ message: 'Database error updating expired wagers' }));
+                  }
+                  return;
                 }
-                return;
+                
+                // Now fetch all wagers for the user (with potentially updated statuses)
+                db.all(
+                  "SELECT * FROM wagers WHERE creator_id = ? OR receiver_id = ? ORDER BY save_time DESC",
+                  [userId, userId],
+                  (err, rows) => {
+                    if (err) {
+                      console.error('Database error:', err.message);
+                      if (!res.headersSent) {
+                        res.writeHead(500);
+                        return res.end(JSON.stringify({ message: 'Database error' }));
+                      }
+                      return;
+                    }
+                    
+                    if (!res.headersSent) {
+                      res.writeHead(200);
+                      res.end(JSON.stringify({ wagers: rows }));
+                    }
+                  }
+                );
               }
-              
-              if (!res.headersSent) {
-                res.writeHead(200);
-                res.end(JSON.stringify({ wagers: rows }));
-              }
-            }
-          );
-        });
-      };
-      
-      applyAuth(req, res);
-      return;
-    }
-    
+            );
+          });
+        };
+        
+        applyAuth(req, res);
+        return;
+      }
     // Get pending wagers for a user (both sent and received)
     else if (req.url === '/api/wagers/pending' && req.method === 'GET') {
-      const applyAuth = (req, res) => {
-        verifyToken(req, res, () => {
-          const userId = req.user.id;
-          
-          db.all(
-            `SELECT w.wager_id, 
-                   w.creator_id, 
-                   c.username as creator_username, 
-                   w.receiver_id, 
-                   r.username as receiver_username,
-                   w.wager_description,
-                   w.wager_amount,
-                   w.expiration_time,
-                   w.save_time,
-                   w.status
-             FROM wagers w
-             JOIN balances c ON w.creator_id = c.id
-             JOIN balances r ON w.receiver_id = r.id
-             WHERE (w.creator_id = ? OR w.receiver_id = ?) 
-             AND w.status = 'pending' 
-             ORDER BY w.save_time DESC`,
-            [userId, userId],
-            (err, rows) => {
-              if (err) {
-                console.error('Database error:', err.message);
-                if (!res.headersSent) {
-                  res.writeHead(500);
-                  return res.end(JSON.stringify({ message: 'Database error' }));
+        const applyAuth = (req, res) => {
+          verifyToken(req, res, () => {
+            const userId = req.user.id;
+            const currentTime = new Date(); // Current time as Date object
+            console.log('currentTime:', currentTime.toString());
+
+            
+            db.all(
+              `SELECT w.wager_id, 
+                     w.creator_id, 
+                     c.username as creator_username, 
+                     w.receiver_id, 
+                     r.username as receiver_username,
+                     w.wager_description,
+                     w.wager_amount,
+                     w.expiration_time,
+                     w.save_time,
+                     w.status
+               FROM wagers w
+               JOIN balances c ON w.creator_id = c.id
+               JOIN balances r ON w.receiver_id = r.id
+               WHERE (w.creator_id = ? OR w.receiver_id = ?) 
+               AND  w.status IN ('pending','approved')
+               ORDER BY w.save_time DESC`,
+              [userId, userId],
+              (err, rows) => {
+                if (err) {
+                  console.error('Database error:', err.message);
+                  if (!res.headersSent) {
+                    res.writeHead(500);
+                    return res.end(JSON.stringify({ message: 'Database error' }));
+                  }
+                  return;
                 }
-                return;
+                
+                // Check for expired wagers and update them in the database
+                const updatePromises = [];
+                const updatedRows = rows.map(row => {
+                  // Create a copy of the row
+                  const updatedRow = {...row};
+                  
+                  // Check if the wager is expired
+                  // Convert the expiration_time string to a Date object
+                  if (row.expiration_time) {
+                    const expirationDate = new Date(row.expiration_time);
+                    console.log('expirationDate:', expirationDate.toString());
+                    console.log('expiration_time raw:', row.expiration_time);
+
+                    
+                    if (expirationDate < currentTime && row.status === 'pending') {
+                      // Update the row in memory
+                      updatedRow.status = 'approval';
+                      
+                      // Log for debugging
+                      console.log(`Wager ${row.wager_id} expired: ${row.expiration_time} < ${currentTime}`);
+                      
+                      // Create a promise to update the database
+                      const updatePromise = new Promise((resolve, reject) => {
+                        db.run(
+                          "UPDATE wagers SET status = 'expired' WHERE wager_id = ?",
+                          [row.wager_id],
+                          (updateErr) => {
+                            if (updateErr) {
+                              console.error('Failed to update wager status:', updateErr.message);
+                              reject(updateErr);
+                            } else {
+                              console.log(`Successfully marked wager ${row.wager_id} as expired in DB`);
+                              resolve();
+                            }
+                          }
+                        );
+                      });
+                      
+                      updatePromises.push(updatePromise);
+                    }
+                  }
+                  
+                  return updatedRow;
+                });
+                
+                // Filter out wagers that are now expired
+                const pendingWagers = updatedRows.filter(row => row.status === 'pending');
+                
+                // Wait for all updates to complete, then send the response
+                Promise.all(updatePromises)
+                  .then(() => {
+                    if (!res.headersSent) {
+                      res.writeHead(200);
+                      res.end(JSON.stringify({ wagers: pendingWagers }));
+                    }
+                  })
+                  .catch(updateErr => {
+                    console.error('Error updating expired wagers:', updateErr);
+                    // Still send the response with the pending wagers
+                    if (!res.headersSent) {
+                      res.writeHead(200);
+                      res.end(JSON.stringify({ wagers: pendingWagers }));
+                    }
+                  });
               }
-              
-              if (!res.headersSent) {
-                res.writeHead(200);
-                res.end(JSON.stringify({ wagers: rows }));
-              }
-            }
-          );
-        });
-      };
-      
-      applyAuth(req, res);
-      return;
-    }
+            );
+          });
+        };
+        
+        applyAuth(req, res);
+        return;
+      }
     
     // Get incoming wagers for a user (wagers where user is the receiver)
     else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
