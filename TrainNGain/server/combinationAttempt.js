@@ -54,7 +54,7 @@ function addSampleData() {
   const sampleData = [
     {
       wager_id: 'wager001',
-      creator_id: 'user1',
+      creator_id: '',
       receiver_id: 'user2',
       wager_description: "you gotta win hen hacks broski",
       wager_amount: 100,
@@ -81,7 +81,16 @@ function addSampleData() {
       expiration_time: '2023-10-10 10:15:00',
       save_time: '2023-10-03 10:15:00',
       status: 'incoming'
-    },
+    },    {
+      wager_id: 'wager004',
+      creator_id: 'user_1740880015421',
+      receiver_id: 'user_1740880092950',
+      wager_description: "do them dishes man. they are dirty.",
+      wager_amount: 200,
+      expiration_time: '2023-10-09 14:30:00',
+      save_time: '2023-10-02 14:30:00',
+      status: 'pending'
+    }
   ];
 
   // SQL statement to insert data into the wager table

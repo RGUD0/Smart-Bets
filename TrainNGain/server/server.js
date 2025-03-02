@@ -1,6 +1,7 @@
 const http = require('http');
 const sqlite3 = require('sqlite3').verbose();
 const { setupAuthRoutes, verifyToken } = require('./authRoutes');
+const { setupWagerRoutes } = require('./wagerRoutes');
 
 // Create and open an SQLite database
 const db = new sqlite3.Database('./database.db', (err) => {
@@ -76,13 +77,29 @@ function initializeDatabase() {
         });
       }
     });
+    
+    // Create Friends table if it doesn't exist
+    db.run(`CREATE TABLE IF NOT EXISTS Friends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      friend_id TEXT,
+      FOREIGN KEY (user_id) REFERENCES balances (id),
+      FOREIGN KEY (friend_id) REFERENCES balances (id),
+      UNIQUE (user_id, friend_id)
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating Friends table:', err.message);
+      } else {
+        console.log('Friends table created or already exists');
+      }
+    });
   });
 }
 
 const server = http.createServer((req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json');
   
@@ -264,40 +281,31 @@ const server = http.createServer((req, res) => {
   }
 
   else if (req.url === '/api/friends' && req.method === 'GET') {
+    // Protected route
     const applyAuth = (req, res, next) => {
       verifyToken(req, res, () => {
-        const userId = req.user.id;
+        const userId = req.user.id; // Get user ID from token
+    
         db.all(
-          `SELECT Friends.friend_id, balances.username 
-           FROM Friends 
-           INNER JOIN balances ON Friends.friend_id = balances.id 
-           WHERE Friends.user_id = ?`,
-          [userId],
+          `SELECT * FROM Friends WHERE user_id = ? AND friend_id != ?`, // Use != to exclude user_id
+          [userId, userId], // Bind userId to both parameters
           (err, rows) => {
             if (err) {
               console.error('Database error:', err.message);
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ message: 'Database error' }));
             } else {
-              const formattedFriends = rows.map(row => ({
-                id: row.friend_id,
-                name: row.username, // Now using the actual username from the Users table
-                avatar: 'https://placekitten.com/100/100',
-                isFavorite: false
-              }));
-        
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ friends: formattedFriends }));
+              res.end(JSON.stringify({ friends: rows })); // Returning the list of users
             }
           }
         );
       });
     };
-  
-    applyAuth(req, res);
-  }
     
-  
+    // Apply auth middleware
+    applyAuth(req, res);        
+  }  
   else {
     // Let the auth routes handler take care of auth endpoints
     // It will only handle the auth routes and pass through others
@@ -307,6 +315,9 @@ const server = http.createServer((req, res) => {
 
 // Setup authentication routes
 setupAuthRoutes(server, db);
+
+// Setup wager routes
+setupWagerRoutes(server, db);
 
 const PORT = 5001;
 server.listen(PORT, () => {
