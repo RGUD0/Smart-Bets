@@ -109,7 +109,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#F7F7F7', // Light gray background
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
@@ -121,11 +121,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginBottom: 20,
+    tintColor: '#4CAF50', // Green logo
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3D95CE',
+    color: '#4CAF50', // Green title
   },
   subtitle: {
     fontSize: 14,
@@ -146,6 +147,7 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 10,
+    color: '#4CAF50', // Green icon
   },
   input: {
     flex: 1,
@@ -155,24 +157,25 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 10,
+    color: '#4CAF50', // Green eye icon
   },
   loginButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50', // Green button
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 15,
   },
   disabledButton: {
-    backgroundColor: '#9DC5E0',
+    backgroundColor: '#A5D6A7', // Light green for disabled state
   },
   loginButtonText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // White text
     fontSize: 16,
     fontWeight: 'bold',
   },
   forgotPasswordText: {
-    color: '#3D95CE',
+    color: '#4CAF50', // Green text
     textAlign: 'center',
     fontSize: 14,
   },
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   signUpText: {
-    color: '#3D95CE',
+    color: '#FFC0CB', // Light pink accent
     fontWeight: 'bold',
   },
 });

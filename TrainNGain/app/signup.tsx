@@ -188,7 +188,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#F7F7F7', // Light gray background
     paddingHorizontal: 20,
   },
   header: {
@@ -200,11 +200,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginBottom: 20,
+    tintColor: '#FFC0CB', // Light pink logo
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3D95CE',
+    color: '#FFC0CB', // Light pink title
   },
   subtitle: {
     fontSize: 14,
@@ -225,6 +226,7 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 10,
+    color: '#FFC0CB', // Light pink icon
   },
   input: {
     flex: 1,
@@ -234,9 +236,10 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 10,
+    color: '#FFC0CB', // Light pink eye icon
   },
   signUpButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#FFC0CB', // Light pink button
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -244,10 +247,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   disabledButton: {
-    backgroundColor: '#9DC5E0',
+    backgroundColor: '#FFE4E1', // Lighter pink for disabled state
   },
   signUpButtonText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // White text
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -260,7 +263,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   loginText: {
-    color: '#3D95CE',
+    color: '#4CAF50', // Light green accent for login text
     fontWeight: 'bold',
   },
 });
