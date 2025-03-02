@@ -264,36 +264,39 @@ const server = http.createServer((req, res) => {
   }
 
   else if (req.url === '/api/friends' && req.method === 'GET') {
-        // Protected route
-        const applyAuth = (req, res, next) => {
-          verifyToken(req, res, () => {
-            const userId = req.user.id; // Get user ID from token
+    const applyAuth = (req, res, next) => {
+      verifyToken(req, res, () => {
+        const userId = req.user.id;
+        db.all(
+          `SELECT Friends.friend_id, balances.username 
+           FROM Friends 
+           INNER JOIN balances ON Friends.friend_id = balances.id 
+           WHERE Friends.user_id = ?`,
+          [userId],
+          (err, rows) => {
+            if (err) {
+              console.error('Database error:', err.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ message: 'Database error' }));
+            } else {
+              const formattedFriends = rows.map(row => ({
+                id: row.friend_id,
+                name: row.username, // Now using the actual username from the Users table
+                avatar: 'https://placekitten.com/100/100',
+                isFavorite: false
+              }));
         
-            db.all(
-              `SELECT * FROM Friends WHERE user_id = ? AND friend_id != ?`, // Use != to exclude user_id
-              [userId, userId], // Bind userId to both parameters
-              (err, rows) => {
-                if (err) {
-                  console.error('Database error:', err.message);
-                  res.writeHead(500, { 'Content-Type': 'application/json' });
-                  res.end(JSON.stringify({ message: 'Database error' }));
-                } else {
-                  res.writeHead(200, { 'Content-Type': 'application/json' });
-                  res.end(JSON.stringify({ friends: rows })); // Returning the list of users
-                }
-              }
-            );
-          });
-        };
-        
-        // Apply auth middleware
-        applyAuth(req, res);        
-      }
-
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ friends: formattedFriends }));
+            }
+          }
+        );
+      });
+    };
+  
+    applyAuth(req, res);
+  }
     
-  
-  
-  
   
   else {
     // Let the auth routes handler take care of auth endpoints
