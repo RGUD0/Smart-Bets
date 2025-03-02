@@ -263,7 +263,34 @@ const server = http.createServer((req, res) => {
     applyAuth(req, res);
   }
 
-  
+  else if (req.url === '/api/friends' && req.method === 'GET') {
+        // Protected route
+        const applyAuth = (req, res, next) => {
+          verifyToken(req, res, () => {
+            const userId = req.user.id; // Get user ID from token
+        
+            db.all(
+              `SELECT * FROM Friends WHERE user_id = ? AND friend_id != ?`, // Use != to exclude user_id
+              [userId, userId], // Bind userId to both parameters
+              (err, rows) => {
+                if (err) {
+                  console.error('Database error:', err.message);
+                  res.writeHead(500, { 'Content-Type': 'application/json' });
+                  res.end(JSON.stringify({ message: 'Database error' }));
+                } else {
+                  res.writeHead(200, { 'Content-Type': 'application/json' });
+                  res.end(JSON.stringify({ friends: rows })); // Returning the list of users
+                }
+              }
+            );
+          });
+        };
+        
+        // Apply auth middleware
+        applyAuth(req, res);        
+      }
+
+    
   
   
   

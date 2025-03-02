@@ -123,6 +123,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* Modal */}
+      {/* Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -132,30 +133,71 @@ export default function HomeScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <ThemedText style={styles.modalTitle}>Enter Bet Details</ThemedText>
+            
+            {/* Bet Details Input */}
             <TextInput
-              style={styles.textInput} // Use the style here
+              style={styles.textInput}
               placeholder="Bet Details"
               value={betDetails}
               onChangeText={setBetDetails}
             />
+
+            {/* Amount Input */}
+            <TextInput
+              style={styles.textInput}
+              placeholder="Amount"
+              keyboardType="numeric" // Ensures input is numeric
+              value={amount.toString()}
+              onChangeText={(text) => setAmount(parseInt(text, 10))}
+            />
+
+            {/* Date and Time Input */}
+            <TouchableOpacity
+              style={styles.textInput}
+              onPress={() => setDateTimePickerVisible(true)} // Trigger date-time picker visibility
+            >
+              <ThemedText style={styles.dateTimeText}>
+                {dateTime ? dateTime.toString() : 'Select Date and Time'}
+              </ThemedText>
+            </TouchableOpacity>
+
+            {/* Submit Button */}
             <TouchableOpacity
               style={styles.submitButton}
               onPress={() => {
                 console.log("Bet Details: ", betDetails);
+                console.log("Amount: ", amount);
+                console.log("Date and Time: ", dateTime);
                 setModalVisible(false); // Close modal after submitting
               }}
             >
               <ThemedText style={styles.submitButtonText}>Submit Bet</ThemedText>
             </TouchableOpacity>
+
+            {/* Cancel Button */}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)} // Close modal without submitting
             >
               <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
+
+            {/* Date Time Picker */}
+            {dateTimePickerVisible && (
+              <DateTimePicker
+                value={dateTime || new Date()}
+                mode="datetime"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setDateTime(selectedDate || dateTime);
+                  setDateTimePickerVisible(false); // Hide picker after selection
+                }}
+              />
+            )}
           </View>
         </View>
       </Modal>
+
     </SafeAreaView>
   );
 }

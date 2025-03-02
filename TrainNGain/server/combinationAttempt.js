@@ -24,8 +24,8 @@ function initializeDatabase(callback) {
       wager_id TEXT PRIMARY KEY,
       creator_id TEXT,
       receiver_id TEXT,
+      wager_description TEXT,
       wager_amount INTEGER,
-      date TIMESTAMP,
       expiration_time TIMESTAMP,
       save_time TIMESTAMP,
       status TEXT,
@@ -56,40 +56,37 @@ function addSampleData() {
       wager_id: 'wager001',
       creator_id: 'user1',
       receiver_id: 'user2',
-      wager_name: "Win Hackathon",
+      wager_description: "you gotta win hen hacks broski",
       wager_amount: 100,
-      date: '2023-10-01 12:00:00',
       expiration_time: '2025-02-08 12:00:00',
       save_time: '2023-10-01 12:00:00',
-      status: 'pending',
+      status: 'pending'
     },
     {
       wager_id: 'wager002',
       creator_id: 'user_1740880015421',
       receiver_id: 'user_1740880092950',
-      wager_name: "Do the Dishes",
+      wager_description: "do them dishes man. they are dirty.",
       wager_amount: 200,
-      date: '2023-10-02 14:30:00',
       expiration_time: '2023-10-09 14:30:00',
       save_time: '2023-10-02 14:30:00',
-      status: 'accepted',
+      status: 'accepted'
     },
     {
       wager_id: 'wager003',
       creator_id: 'user_1740880092950',
       receiver_id: 'user2',
-      wager_name: "Get a 95 on my Computer Science Exam",
+      wager_description: "must get a 95 on your next Algorithms Exam",
       wager_amount: 150,
-      date: '2023-10-03 10:15:00',
       expiration_time: '2023-10-10 10:15:00',
       save_time: '2023-10-03 10:15:00',
-      status: 'completed',
+      status: 'incoming'
     },
   ];
 
   // SQL statement to insert data into the wager table
   const insertWager = `
-    INSERT INTO Wagers (wager_id, creator_id, receiver_id, wager_amount, date, expiration_time, save_time, status)
+    INSERT INTO Wagers (wager_id, creator_id, receiver_id, wager_description, wager_amount, expiration_time, save_time, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?);
   `;
 
@@ -101,8 +98,8 @@ function addSampleData() {
         data.wager_id,
         data.creator_id,
         data.receiver_id,
+        data.wager_description,
         data.wager_amount,
-        data.date,
         data.expiration_time,
         data.save_time,
         data.status,
