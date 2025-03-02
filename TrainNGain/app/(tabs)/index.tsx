@@ -1,7 +1,7 @@
 import { Button, View, Text, Modal, Image, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
-import { getFriends } from './explore';
+import { Friend, getFriends } from './explore';
 import { ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -55,7 +55,7 @@ export default function HomeScreen() {
   const [balance, setBalance] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogVisible, setDialogVisible] = useState(false);
-  const [friends, setFriends] = useState()
+  const [friends, setFriends] = useState<Friend>();
 
   const showDialog = () => {
     setDialogVisible(true);
