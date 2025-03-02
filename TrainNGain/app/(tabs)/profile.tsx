@@ -129,17 +129,17 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={20} color="#999999" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem}>
+            {/* <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
               <ThemedText style={styles.optionText}>Notifications</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
-            <TouchableOpacity style={styles.optionItem}>
+            {/* <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="help-circle-outline" size={24} color="#3D95CE" />
               <ThemedText style={styles.optionText}>Help & Support</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </ThemedView>
 
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
