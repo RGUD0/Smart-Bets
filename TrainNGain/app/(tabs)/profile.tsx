@@ -122,12 +122,6 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="notifications-outline" size={24} color="#388E3C" /> {/* Green icon */}
-              <ThemedText style={styles.optionText}>Notifications</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
-            </TouchableOpacity>
-
           </ThemedView>
 
           <TouchableOpacity 
