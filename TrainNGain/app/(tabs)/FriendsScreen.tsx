@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../AuthContext';
+import { useAuth } from '../AuthContext';
 
 const FriendsScreen = () => {
+  const [friends, setFriends] = useState([]);
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { authFetch } = useAuth(); // <-- Access authFetch from context
@@ -128,7 +131,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDDDDD',
   },
   addButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#28A745',  // Green color here
     borderRadius: 8,
     width: 50,
     justifyContent: 'center',
@@ -165,6 +168,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888888',
   },
+  // Update the icon colors for favorite and remove button
+  addButtonIcon: {
+    color: 'white',
+  },
 });
 
 export default FriendsScreen;
+

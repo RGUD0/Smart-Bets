@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../AuthContext';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 // Define the wager type
 interface Wager {
@@ -21,6 +22,13 @@ interface Wager {
   save_time: string;
   status: string;
 }
+
+// Notification data
+const notifications = [
+  { id: '1', message: 'Alex Kim promised you 10 points for completing the Seattle 5k!', time: '2h ago' },
+  { id: '2', message: 'Your promise to Taylor Swift has been fulfilled!', time: '5h ago' },
+  { id: '3', message: 'Morgan Lee fulfilled a promise to Gerald!', time: '1d ago' },
+];
 
 // Wager Item Component
 const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string }) => {
@@ -70,6 +78,15 @@ const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string
   );
 };
 
+// Notification Item Component
+const NotificationItem = ({ item }) => (
+  <ThemedView style={styles.notificationItem}>
+    <ThemedText>{item.message}</ThemedText>
+    <ThemedText style={styles.timeText}>{item.time}</ThemedText>
+  </ThemedView>
+);
+
+
 export default function HomeScreen() {
   const { authFetch, user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
@@ -77,12 +94,84 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [wagersLoading, setWagersLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
   const [wagerDetails, setWagerDetails] = useState({
     receiverId: "",
     description: "",
     amount: "",
     expirationTime: ""
   });
+  
+  // Date and time state
+  const [expirationDate, setExpirationDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  // Format the date and time for display
+  const formattedDate = expirationDate.toLocaleDateString();
+  const formattedTime = expirationDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Format date for API whenever it changes
+  useEffect(() => {
+    const formattedForApi = expirationDate.toISOString().replace('T', ' ').substring(0, 19);
+    setWagerDetails({...wagerDetails, expirationTime: formattedForApi});
+  }, [expirationDate]);
+
+  // Native platforms date/time change handler
+  const handleDateTimeChange = (
+    event: DateTimePickerEvent,
+    selectedValue: Date | undefined
+  ) => {
+    // Hide the picker when Android selects (iOS will keep it open)
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
+    
+    if (selectedValue) {
+      const newDateTime = new Date(expirationDate); // Start with current date/time
+      
+      if (pickerMode === 'date') {
+        // Update only date parts, preserve time
+        newDateTime.setFullYear(selectedValue.getFullYear());
+        newDateTime.setMonth(selectedValue.getMonth());
+        newDateTime.setDate(selectedValue.getDate());
+      } else {
+        // Update only time parts, preserve date
+        newDateTime.setHours(selectedValue.getHours());
+        newDateTime.setMinutes(selectedValue.getMinutes());
+      }
+      
+      // Update the state with the new date/time
+      setExpirationDate(newDateTime);
+    }
+    
+    // On iOS, we need to manually close the picker when in time mode
+    // Date mode has a "Done" button built-in
+    if (Platform.OS === 'ios' && pickerMode === 'time') {
+      setShowPicker(false);
+    }
+  };
+
+  // Web platform handlers
+  const handleWebDateChange = (e) => {
+    const newDate = new Date(e.target.value);
+    if (!isNaN(newDate.getTime())) {
+      // Preserve the current time when changing the date
+      newDate.setHours(expirationDate.getHours());
+      newDate.setMinutes(expirationDate.getMinutes());
+      setExpirationDate(newDate);
+    }
+  };
+
+  const handleWebTimeChange = (e) => {
+    if (e.target.value) {
+      const [hours, minutes] = e.target.value.split(':').map(num => parseInt(num));
+      const newDate = new Date(expirationDate);
+      newDate.setHours(hours || 0);
+      newDate.setMinutes(minutes || 0);
+      setExpirationDate(newDate);
+    }
+  };
 
   // Fetch user balance
   useEffect(() => {
@@ -93,6 +182,76 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchPendingWagers();
   }, []);
+  // Add these handler functions for wagers
+const handleAcceptWager = async (wagerId: string) => {
+  try {
+    const response = await authFetch('/api/wagers/respond', {
+      method: 'PUT',
+      body: JSON.stringify({
+        wager_id: wagerId,
+        action: 'accept'
+      })
+    });
+    
+    console.log('Wager accepted:', response);
+    
+    // Refresh wagers and balance
+    fetchPendingWagers();
+    fetchBalance();
+  } catch (error) {
+    console.error('Error accepting wager:', error);
+  }
+};
+
+
+const handleRejectWager = async (wagerId: string) => {
+  try {
+    const response = await authFetch('/api/wagers/respond', {
+      method: 'PUT',
+      body: JSON.stringify({
+        wager_id: wagerId,
+        action: 'reject'
+      })
+    });
+    
+    console.log('Wager rejected:', response);
+    
+    // Refresh wagers and balance
+    fetchPendingWagers();
+    fetchBalance();
+  } catch (error) {
+    console.error('Error rejecting wager:', error);
+  }
+};
+
+const handleResolveWager = async (wagerId: string, winnerId: string) => {
+  try {
+    const response = await authFetch('/api/wagers/resolve', {
+      method: 'PUT',
+      body: JSON.stringify({
+        wager_id: wagerId,
+        winner_id: winnerId
+      })
+    });
+    
+    console.log('Wager resolved:', response);
+    
+    // Refresh wagers and balance
+    fetchPendingWagers();
+    fetchBalance();
+  } catch (error) {
+    console.error('Error resolving wager:', error);
+  }
+};
+
+// Add this function to open the resolve modal
+const [resolveModalVisible, setResolveModalVisible] = useState(false);
+const [selectedWager, setSelectedWager] = useState<Wager | null>(null);
+
+const openResolveModal = (wager: Wager) => {
+  setSelectedWager(wager);
+  setResolveModalVisible(true);
+};
 
   // Function to fetch balance
   const fetchBalance = async () => {
@@ -189,13 +348,16 @@ export default function HomeScreen() {
         <ThemedView style={styles.headerContent}>
           <TouchableOpacity>
             <Image
-              source={require('@/assets/images/partial-react-logo.png')}
+              source={require('@/assets/images/cuteplant.png')}
               style={styles.profilePic}
             />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>BetBuddy</ThemedText>
-          <TouchableOpacity>
-            <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
+          <ThemedView style={styles.headerTitleContainer}>
+            <ThemedText type="title" style={styles.headerTitle}>Pinky Promises</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>Growing healthy habits with friends!</ThemedText>
+          </ThemedView>
+          <TouchableOpacity onPress={() => setNotificationsModalVisible(true)}>
+            <Ionicons name="notifications-outline" size={24} color="#4CAF50" />
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
@@ -204,7 +366,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.balanceCard}>
         <ThemedText type="defaultSemiBold">Your Balance</ThemedText>
         {loading ? (
-          <ActivityIndicator size="small" color="#3D95CE" />
+          <ActivityIndicator size="small" color="#4CAF50" />
         ) : (
           <ThemedText type="title">{balance !== null ? `${balance} points` : 'N/A'}</ThemedText>
         )}
@@ -220,7 +382,7 @@ export default function HomeScreen() {
         </ThemedView>
 
         {wagersLoading ? (
-          <ActivityIndicator size="large" color="#3D95CE" style={styles.loadingIndicator} />
+          <ActivityIndicator size="large" color="#4CAF50" style={styles.loadingIndicator} />
         ) : (
           <>
             {pendingWagers.length > 0 ? (
@@ -257,12 +419,12 @@ export default function HomeScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Create New Wager</ThemedText>
+            <ThemedText style={styles.modalTitle}>Create New Promise</ThemedText>
             
-            <ThemedText>Receiver ID</ThemedText>
+            <ThemedText>Friend ID</ThemedText>
             <TextInput
               style={styles.textInput}
-              placeholder="User ID of receiver"
+              placeholder="User ID of friend"
               value={wagerDetails.receiverId}
               onChangeText={(text) => setWagerDetails({...wagerDetails, receiverId: text})}
             />
@@ -270,9 +432,10 @@ export default function HomeScreen() {
             <ThemedText>Description</ThemedText>
             <TextInput
               style={styles.textInput}
-              placeholder="What's the wager about?"
+              placeholder="What's the promise about?"
               value={wagerDetails.description}
               onChangeText={(text) => setWagerDetails({...wagerDetails, description: text})}
+              multiline
             />
             
             <ThemedText>Amount (points)</ThemedText>
@@ -284,11 +447,82 @@ export default function HomeScreen() {
               onChangeText={(text) => setWagerDetails({...wagerDetails, amount: text})}
             />
             
+            {/* Date and Time Picker - Web Compatible Version */}
+            <ThemedText>Expiration Date</ThemedText>
+            {Platform.OS === 'web' ? (
+              // Web-specific date input
+              <View style={styles.dateInput}>
+                <input
+                  type="date"
+                  value={expirationDate.toISOString().split('T')[0]}
+                  onChange={handleWebDateChange}
+                  style={{
+                    height: 36,
+                    width: '100%',
+                    border: 'none',
+                    outline: 'none',
+                    backgroundColor: 'transparent',
+                  }}
+                />
+              </View>
+            ) : (
+              // TouchableOpacity for native platforms
+              <TouchableOpacity
+                style={styles.dateInput}
+                onPress={() => {
+                  setPickerMode('date');
+                  setShowPicker(true);
+                }}
+              >
+                <ThemedText>{formattedDate}</ThemedText>
+              </TouchableOpacity>
+            )}
+            
+            <ThemedText>Expiration Time</ThemedText>
+            {Platform.OS === 'web' ? (
+              // Web-specific time input
+              <View style={styles.dateInput}>
+                <input
+                  type="time"
+                  value={`${String(expirationDate.getHours()).padStart(2, '0')}:${String(expirationDate.getMinutes()).padStart(2, '0')}`}
+                  onChange={handleWebTimeChange}
+                  style={{
+                    height: 36,
+                    width: '100%',
+                    border: 'none',
+                    outline: 'none',
+                    backgroundColor: 'transparent',
+                  }}
+                />
+              </View>
+            ) : (
+              // TouchableOpacity for native platforms
+              <TouchableOpacity
+                style={styles.dateInput}
+                onPress={() => {
+                  setPickerMode('time');
+                  setShowPicker(true);
+                }}
+              >
+                <ThemedText>{formattedTime}</ThemedText>
+              </TouchableOpacity>
+            )}
+
+            {/* Only render the DateTimePicker on native platforms */}
+            {Platform.OS !== 'web' && showPicker && (
+              <DateTimePicker
+                value={expirationDate}
+                mode={pickerMode}
+                display="default"
+                onChange={handleDateTimeChange}
+              />
+            )}
+            
             <TouchableOpacity
               style={styles.submitButton}
               onPress={handleCreateWager}
             >
-              <ThemedText style={styles.submitButtonText}>Create Wager</ThemedText>
+              <ThemedText style={styles.submitButtonText}>Create Promise</ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity
@@ -296,6 +530,37 @@ export default function HomeScreen() {
               onPress={() => setModalVisible(false)}
             >
               <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Notifications Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={notificationsModalVisible}
+        onRequestClose={() => setNotificationsModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>Notifications</ThemedText>
+
+            {/* Notifications List */}
+            <FlatList
+              data={notifications}
+              renderItem={({ item }) => <NotificationItem item={item} />}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.notificationsList}
+            />
+
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setNotificationsModalVisible(false)}
+            >
+              <ThemedText style={styles.closeButtonText}>Close</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -320,10 +585,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
   },
   headerTitle: {
-    color: '#3D95CE',
+    color: '#4CAF50',
     fontSize: 20,
+  },
+  headerSubtitle: {
+    color: '#666666',
+    fontSize: 14,
+    marginTop: 2,
   },
   profilePic: {
     height: 36,
@@ -353,9 +627,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingHorizontal: 16,
   },
   seeAllText: {
-    color: '#3D95CE',
+    color: '#4CAF50',
   },
   wagerItem: {
     flexDirection: 'row',
@@ -368,7 +643,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -395,6 +670,7 @@ const styles = StyleSheet.create({
   },
   amountText: {
     fontWeight: '600',
+    color: '#4CAF50',
   },
   floatingActionButton: {
     position: 'absolute',
@@ -402,7 +678,7 @@ const styles = StyleSheet.create({
     bottom: 24,
     width: 60,
     height: 60,
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50',
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
@@ -440,7 +716,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
   },
   submitButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50',
     paddingVertical: 12,
     borderRadius: 5,
     alignItems: 'center',
@@ -472,5 +748,22 @@ const styles = StyleSheet.create({
   noWagersText: {
     color: '#999999',
     fontSize: 16,
+  },
+  dateInput: {
+    height: 40,
+    borderColor: '#cccccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingLeft: 10,
+    justifyContent: 'center',
+  },
+  notificationItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  notificationsList: {
+    paddingBottom: 20,
   },
 });
