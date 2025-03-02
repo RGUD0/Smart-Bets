@@ -72,7 +72,15 @@ const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string
 };
 
 // Incoming Wager Notification Item Component
-const IncomingWagerItem = ({ item }: { item: Wager }) => {
+const IncomingWagerItem = ({ 
+  item, 
+  onAccept, 
+  onReject 
+}: { 
+  item: Wager; 
+  onAccept: (wagerId: string) => void; 
+  onReject: (wagerId: string) => void;
+}) => {
   // Calculate relative time
   const getRelativeTime = (dateString: string) => {
     const now = new Date();
@@ -94,6 +102,23 @@ const IncomingWagerItem = ({ item }: { item: Wager }) => {
     <ThemedView style={styles.notificationItem}>
       <ThemedText>{`${item.creator_username || item.creator_id} promised you ${item.wager_amount} points for: ${item.wager_description}`}</ThemedText>
       <ThemedText style={styles.timeText}>{getRelativeTime(item.save_time)}</ThemedText>
+      
+      {/* Action Buttons */}
+      <ThemedView style={styles.notificationActions}>
+        <TouchableOpacity 
+          style={styles.acceptButton}
+          onPress={() => onAccept(item.wager_id)}
+        >
+          <ThemedText style={styles.actionButtonText}>Accept</ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.rejectButton}
+          onPress={() => onReject(item.wager_id)}
+        >
+          <ThemedText style={styles.actionButtonText}>Reject</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
     </ThemedView>
   );
 };
@@ -166,7 +191,7 @@ export default function HomeScreen() {
   };
 
   // Web platform handlers
-  const handleWebDateChange = (e) => {
+  const handleWebDateChange = (e: any) => {
     const newDate = new Date(e.target.value);
     if (!isNaN(newDate.getTime())) {
       // Preserve the current time when changing the date
@@ -176,9 +201,9 @@ export default function HomeScreen() {
     }
   };
 
-  const handleWebTimeChange = (e) => {
+  const handleWebTimeChange = (e: any) => {
     if (e.target.value) {
-      const [hours, minutes] = e.target.value.split(':').map(num => parseInt(num));
+      const [hours, minutes] = e.target.value.split(':').map((num: string) => parseInt(num));
       const newDate = new Date(expirationDate);
       newDate.setHours(hours || 0);
       newDate.setMinutes(minutes || 0);
@@ -228,9 +253,12 @@ export default function HomeScreen() {
     fetchIncomingWagers();
   }, []);
 
-  // Add these handler functions for wagers
+  // Handler functions for wagers
   const handleAcceptWager = async (wagerId: string) => {
     try {
+      // Display a loading indicator or disable buttons while processing
+      setNotificationsLoading(true);
+      
       const response = await authFetch('/api/wagers/respond', {
         method: 'PUT',
         body: JSON.stringify({
@@ -242,16 +270,21 @@ export default function HomeScreen() {
       console.log('Wager accepted:', response);
       
       // Refresh wagers and balance
-      fetchPendingWagers();
-      fetchIncomingWagers();
-      fetchBalance();
+      await fetchIncomingWagers();
+      await fetchPendingWagers();
+      await fetchBalance();
     } catch (error) {
       console.error('Error accepting wager:', error);
+    } finally {
+      setNotificationsLoading(false);
     }
   };
 
   const handleRejectWager = async (wagerId: string) => {
     try {
+      // Display a loading indicator or disable buttons while processing
+      setNotificationsLoading(true);
+      
       const response = await authFetch('/api/wagers/respond', {
         method: 'PUT',
         body: JSON.stringify({
@@ -263,11 +296,13 @@ export default function HomeScreen() {
       console.log('Wager rejected:', response);
       
       // Refresh wagers and balance
-      fetchPendingWagers();
-      fetchIncomingWagers();
-      fetchBalance();
+      await fetchIncomingWagers();
+      await fetchPendingWagers();
+      await fetchBalance();
     } catch (error) {
       console.error('Error rejecting wager:', error);
+    } finally {
+      setNotificationsLoading(false);
     }
   };
 
@@ -592,7 +627,7 @@ export default function HomeScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Notifications</ThemedText>
+            <ThemedText style={styles.modalTitle}>Incoming Promises</ThemedText>
 
             {/* Incoming Wagers as Notifications */}
             {notificationsLoading ? (
@@ -602,14 +637,20 @@ export default function HomeScreen() {
                 {incomingWagers.length > 0 ? (
                   <FlatList
                     data={incomingWagers}
-                    renderItem={({ item }) => <IncomingWagerItem item={item} />}
+                    renderItem={({ item }) => (
+                      <IncomingWagerItem 
+                        item={item} 
+                        onAccept={handleAcceptWager}
+                        onReject={handleRejectWager}
+                      />
+                    )}
                     keyExtractor={(item) => item.wager_id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.notificationsList}
                   />
                 ) : (
                   <ThemedView style={styles.noWagersContainer}>
-                    <ThemedText style={styles.noWagersText}>No new notifications</ThemedText>
+                    <ThemedText style={styles.noWagersText}>No new promises</ThemedText>
                   </ThemedView>
                 )}
               </>
@@ -825,5 +866,32 @@ const styles = StyleSheet.create({
   },
   notificationsList: {
     paddingBottom: 20,
+  },
+  notificationActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  rejectButton: {
+    backgroundColor: '#F44336',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 8,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });

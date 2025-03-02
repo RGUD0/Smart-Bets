@@ -251,7 +251,7 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
               
               // Check if wager exists and user is the receiver
               db.get(
-                "SELECT * FROM wagers WHERE wager_id = ? AND receiver_id = ? AND status = 'pending'",
+                "SELECT * FROM wagers WHERE wager_id = ? AND receiver_id = ? AND status = 'incoming'",
                 [wager_id, userId],
                 (err, wager) => {
                   if (err) {
@@ -281,7 +281,7 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                       
                       // Update wager status and reserve the amount from receiver's balance
                       db.run(
-                        "UPDATE wagers SET status = 'active' WHERE wager_id = ?",
+                        "UPDATE wagers SET status = 'pending' WHERE wager_id = ?",
                         [wager_id],
                         function(err) {
                           if (err) {
