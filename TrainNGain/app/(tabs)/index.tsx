@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../AuthContext'; // <-- Adjust this import path if needed
 
-// Mock transaction data
+// transaction data
 const transactions = [
   { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Completing Seattle 5k', time: '2h ago' },
   { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Finishing homework by Thursday 12am', time: '5h ago' },
@@ -95,16 +95,6 @@ export default function HomeScreen() {
         ) : (
           <ThemedText type="title">{balance ? `${balance} points` : 'N/A'}</ThemedText>
         )}
-        <ThemedView style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-up-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Pay</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-down-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Request</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
       </ThemedView>
 
       {/* Transactions Feed */}
@@ -125,9 +115,9 @@ export default function HomeScreen() {
         />
       </ThemedView>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button with Plus Sign */}
       <TouchableOpacity style={styles.floatingActionButton}>
-        <Ionicons name="scan-outline" size={28} color="white" />
+        <ThemedText style={styles.plusButton}>+</ThemedText>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -169,25 +159,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-  },
-  actionButton: {
-    backgroundColor: '#3D95CE',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 24,
-    gap: 8,
-  },
-  actionButtonText: {
-    color: 'white',
-    fontWeight: '600',
   },
   transactionsContainer: {
     flex: 1,
@@ -241,7 +212,7 @@ const styles = StyleSheet.create({
   },
   floatingActionButton: {
     position: 'absolute',
-    right: 24,
+    left: '50%',
     bottom: 24,
     backgroundColor: '#3D95CE',
     width: 56,
@@ -249,10 +220,16 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: -28, // Centers the button horizontally
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  plusButton: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });

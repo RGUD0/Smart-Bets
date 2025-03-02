@@ -104,7 +104,7 @@ export default function ProfileScreen() {
             <ThemedView style={styles.balanceSection}>
               <ThemedText type="defaultSemiBold">Current Balance</ThemedText>
               <ThemedText type="title">
-                {userData.balance ? `$${userData.balance}` : 'N/A'}
+                {userData.balance ? `${userData.balance} points` : 'N/A'}
               </ThemedText>
             </ThemedView>
           </ThemedView>
