@@ -41,26 +41,38 @@ function setupWagerRoutes(server, db) {
               
               // Input validation
               if (!receiver_id || !wager_description || !wager_amount || !expiration_time) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ message: 'All fields are required' }));
+                if (!res.headersSent) {
+                  res.writeHead(400);
+                  return res.end(JSON.stringify({ message: 'All fields are required' }));
+                }
+                return;
               }
               
               // Check if creator has enough balance
               db.get("SELECT balance FROM balances WHERE id = ?", [creator_id], (err, row) => {
                 if (err) {
                   console.error('Database error:', err.message);
-                  res.writeHead(500);
-                  return res.end(JSON.stringify({ message: 'Database error' }));
+                  if (!res.headersSent) {
+                    res.writeHead(500);
+                    return res.end(JSON.stringify({ message: 'Database error' }));
+                  }
+                  return;
                 }
                 
                 if (!row) {
-                  res.writeHead(404);
-                  return res.end(JSON.stringify({ message: 'User not found' }));
+                  if (!res.headersSent) {
+                    res.writeHead(404);
+                    return res.end(JSON.stringify({ message: 'User not found' }));
+                  }
+                  return;
                 }
                 
                 if (row.balance < wager_amount) {
-                  res.writeHead(400);
-                  return res.end(JSON.stringify({ message: 'Insufficient balance' }));
+                  if (!res.headersSent) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ message: 'Insufficient balance' }));
+                  }
+                  return;
                 }
                 
                 // Generate a unique ID for the wager
@@ -75,18 +87,15 @@ function setupWagerRoutes(server, db) {
                   function(err) {
                     if (err) {
                       console.error('Database error:', err.message);
-                      res.writeHead(500);
-                      return res.end(JSON.stringify({ message: 'Failed to create wager' }));
+                      if (!res.headersSent) {
+                        res.writeHead(500);
+                        return res.end(JSON.stringify({ message: 'Failed to create wager' }));
+                      }
+                      return;
                     }
                     
-                    // Reserve the amount from creator's balance
-                    db.run("UPDATE balances SET balance = balance - ? WHERE id = ?", [wager_amount, creator_id], function(err) {
-                      if (err) {
-                        console.error('Database error:', err.message);
-                        res.writeHead(500);
-                        return res.end(JSON.stringify({ message: 'Failed to update balance' }));
-                      }
-                      
+                    // Send response only once
+                    if (!res.headersSent) {
                       res.writeHead(201);
                       res.end(JSON.stringify({
                         message: 'Wager created successfully',
@@ -101,14 +110,24 @@ function setupWagerRoutes(server, db) {
                           status
                         }
                       }));
-                    });
+                    }
+                    
+                    // Reserve the amount from creator's balance is commented out
+                    // db.run("UPDATE balances SET balance = balance - ? WHERE id = ?", [wager_amount, creator_id], function(err) {
+                    //   if (err) {
+                    //     console.error('Database error:', err.message);
+                    //     // Don't send response here since we already sent it above
+                    //   }
+                    // });
                   }
                 );
               });
             } catch (error) {
               console.error('Invalid JSON format:', error);
-              res.writeHead(400);
-              res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+              if (!res.headersSent) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+              }
             }
           });
         });
@@ -130,12 +149,17 @@ function setupWagerRoutes(server, db) {
             (err, rows) => {
               if (err) {
                 console.error('Database error:', err.message);
-                res.writeHead(500);
-                return res.end(JSON.stringify({ message: 'Database error' }));
+                if (!res.headersSent) {
+                  res.writeHead(500);
+                  return res.end(JSON.stringify({ message: 'Database error' }));
+                }
+                return;
               }
               
-              res.writeHead(200);
-              res.end(JSON.stringify({ wagers: rows }));
+              if (!res.headersSent) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ wagers: rows }));
+              }
             }
           );
         });
@@ -172,12 +196,17 @@ function setupWagerRoutes(server, db) {
             (err, rows) => {
               if (err) {
                 console.error('Database error:', err.message);
-                res.writeHead(500);
-                return res.end(JSON.stringify({ message: 'Database error' }));
+                if (!res.headersSent) {
+                  res.writeHead(500);
+                  return res.end(JSON.stringify({ message: 'Database error' }));
+                }
+                return;
               }
               
-              res.writeHead(200);
-              res.end(JSON.stringify({ wagers: rows }));
+              if (!res.headersSent) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ wagers: rows }));
+              }
             }
           );
         });
@@ -186,48 +215,53 @@ function setupWagerRoutes(server, db) {
       applyAuth(req, res);
       return;
     }
-    // Get incoming wagers for a user (wagers where user is the receiver)
-// Get incoming wagers for a user (wagers where user is the receiver)
-else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
-    const applyAuth = (req, res) => {
-      verifyToken(req, res, () => {
-        const userId = req.user.id;
-        
-        db.all(
-          `SELECT w.wager_id, 
-                 w.creator_id, 
-                 c.username as creator_username, 
-                 w.receiver_id, 
-                 r.username as receiver_username,
-                 w.wager_description,
-                 w.wager_amount,
-                 w.expiration_time,
-                 w.save_time,
-                 w.status
-           FROM wagers w
-           JOIN balances c ON w.creator_id = c.id
-           JOIN balances r ON w.receiver_id = r.id
-           WHERE w.receiver_id = ? 
-           AND w.status = 'incoming' 
-           ORDER BY w.save_time DESC`,
-          [userId],
-          (err, rows) => {
-            if (err) {
-              console.error('Database error:', err.message);
-              res.writeHead(500);
-              return res.end(JSON.stringify({ message: 'Database error' }));
-            }
-            
-            res.writeHead(200);
-            res.end(JSON.stringify({ wagers: rows }));
-          }
-        );
-      });
-    };
     
-    applyAuth(req, res);
-    return;
-  }
+    // Get incoming wagers for a user (wagers where user is the receiver)
+    else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
+      const applyAuth = (req, res) => {
+        verifyToken(req, res, () => {
+          const userId = req.user.id;
+          
+          db.all(
+            `SELECT w.wager_id, 
+                   w.creator_id, 
+                   c.username as creator_username, 
+                   w.receiver_id, 
+                   r.username as receiver_username,
+                   w.wager_description,
+                   w.wager_amount,
+                   w.expiration_time,
+                   w.save_time,
+                   w.status
+             FROM wagers w
+             JOIN balances c ON w.creator_id = c.id
+             JOIN balances r ON w.receiver_id = r.id
+             WHERE w.receiver_id = ? 
+             AND w.status = 'incoming' 
+             ORDER BY w.save_time DESC`,
+            [userId],
+            (err, rows) => {
+              if (err) {
+                console.error('Database error:', err.message);
+                if (!res.headersSent) {
+                  res.writeHead(500);
+                  return res.end(JSON.stringify({ message: 'Database error' }));
+                }
+                return;
+              }
+              
+              if (!res.headersSent) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ wagers: rows }));
+              }
+            }
+          );
+        });
+      };
+      
+      applyAuth(req, res);
+      return;
+    }
     
     // Update wager status (accept/reject)
     else if (req.url === '/api/wagers/respond' && req.method === 'PUT') {
@@ -245,8 +279,11 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
               
               // Input validation
               if (!wager_id || !action || (action !== 'accept' && action !== 'reject')) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ message: 'Invalid parameters' }));
+                if (!res.headersSent) {
+                  res.writeHead(400);
+                  return res.end(JSON.stringify({ message: 'Invalid parameters' }));
+                }
+                return;
               }
               
               // Check if wager exists and user is the receiver
@@ -256,13 +293,19 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                 (err, wager) => {
                   if (err) {
                     console.error('Database error:', err.message);
-                    res.writeHead(500);
-                    return res.end(JSON.stringify({ message: 'Database error' }));
+                    if (!res.headersSent) {
+                      res.writeHead(500);
+                      return res.end(JSON.stringify({ message: 'Database error' }));
+                    }
+                    return;
                   }
                   
                   if (!wager) {
-                    res.writeHead(404);
-                    return res.end(JSON.stringify({ message: 'Wager not found or not pending' }));
+                    if (!res.headersSent) {
+                      res.writeHead(404);
+                      return res.end(JSON.stringify({ message: 'Wager not found or not pending' }));
+                    }
+                    return;
                   }
                   
                   if (action === 'accept') {
@@ -270,41 +313,52 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                     db.get("SELECT balance FROM balances WHERE id = ?", [userId], (err, row) => {
                       if (err) {
                         console.error('Database error:', err.message);
-                        res.writeHead(500);
-                        return res.end(JSON.stringify({ message: 'Database error' }));
+                        if (!res.headersSent) {
+                          res.writeHead(500);
+                          return res.end(JSON.stringify({ message: 'Database error' }));
+                        }
+                        return;
                       }
                       
                       if (row.balance < wager.wager_amount) {
-                        res.writeHead(400);
-                        return res.end(JSON.stringify({ message: 'Insufficient balance' }));
+                        if (!res.headersSent) {
+                          res.writeHead(400);
+                          return res.end(JSON.stringify({ message: 'Insufficient balance' }));
+                        }
+                        return;
                       }
                       
-                      // Update wager status and reserve the amount from receiver's balance
+                      // Update wager status
                       db.run(
                         "UPDATE wagers SET status = 'pending' WHERE wager_id = ?",
                         [wager_id],
                         function(err) {
                           if (err) {
                             console.error('Database error:', err.message);
-                            res.writeHead(500);
-                            return res.end(JSON.stringify({ message: 'Failed to update wager' }));
+                            if (!res.headersSent) {
+                              res.writeHead(500);
+                              return res.end(JSON.stringify({ message: 'Failed to update wager' }));
+                            }
+                            return;
                           }
                           
-                          // Reserve the amount from receiver's balance
-                          db.run(
-                            "UPDATE balances SET balance = balance - ? WHERE id = ?",
-                            [wager.wager_amount, userId],
-                            function(err) {
-                              if (err) {
-                                console.error('Database error:', err.message);
-                                res.writeHead(500);
-                                return res.end(JSON.stringify({ message: 'Failed to update balance' }));
-                              }
-                              
-                              res.writeHead(200);
-                              res.end(JSON.stringify({ message: 'Wager accepted' }));
-                            }
-                          );
+                          // Send response now instead of in commented code
+                          if (!res.headersSent) {
+                            res.writeHead(200);
+                            res.end(JSON.stringify({ message: 'Wager accepted' }));
+                          }
+                          
+                          // Reserve the amount from receiver's balance is commented out
+                          // db.run(
+                          //   "UPDATE balances SET balance = balance - ? WHERE id = ?",
+                          //   [wager.wager_amount, userId],
+                          //   function(err) {
+                          //     if (err) {
+                          //       console.error('Database error:', err.message);
+                          //       // Don't send response here as we've already sent it above
+                          //     }
+                          //   }
+                          // );
                         }
                       );
                     });
@@ -316,8 +370,11 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                       function(err) {
                         if (err) {
                           console.error('Database error:', err.message);
-                          res.writeHead(500);
-                          return res.end(JSON.stringify({ message: 'Failed to update wager' }));
+                          if (!res.headersSent) {
+                            res.writeHead(500);
+                            return res.end(JSON.stringify({ message: 'Failed to update wager' }));
+                          }
+                          return;
                         }
                         
                         // Return the amount to creator's balance
@@ -327,12 +384,17 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                           function(err) {
                             if (err) {
                               console.error('Database error:', err.message);
-                              res.writeHead(500);
-                              return res.end(JSON.stringify({ message: 'Failed to update balance' }));
+                              if (!res.headersSent) {
+                                res.writeHead(500);
+                                return res.end(JSON.stringify({ message: 'Failed to update balance' }));
+                              }
+                              return;
                             }
                             
-                            res.writeHead(200);
-                            res.end(JSON.stringify({ message: 'Wager rejected' }));
+                            if (!res.headersSent) {
+                              res.writeHead(200);
+                              res.end(JSON.stringify({ message: 'Wager rejected' }));
+                            }
                           }
                         );
                       }
@@ -342,8 +404,10 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
               );
             } catch (error) {
               console.error('Invalid JSON format:', error);
-              res.writeHead(400);
-              res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+              if (!res.headersSent) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+              }
             }
           });
         });
@@ -369,8 +433,11 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
               
               // Input validation
               if (!wager_id || !winner_id) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ message: 'Invalid parameters' }));
+                if (!res.headersSent) {
+                  res.writeHead(400);
+                  return res.end(JSON.stringify({ message: 'Invalid parameters' }));
+                }
+                return;
               }
               
               // Check if wager exists and user is the creator
@@ -380,19 +447,28 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                 (err, wager) => {
                   if (err) {
                     console.error('Database error:', err.message);
-                    res.writeHead(500);
-                    return res.end(JSON.stringify({ message: 'Database error' }));
+                    if (!res.headersSent) {
+                      res.writeHead(500);
+                      return res.end(JSON.stringify({ message: 'Database error' }));
+                    }
+                    return;
                   }
                   
                   if (!wager) {
-                    res.writeHead(404);
-                    return res.end(JSON.stringify({ message: 'Wager not found or not active' }));
+                    if (!res.headersSent) {
+                      res.writeHead(404);
+                      return res.end(JSON.stringify({ message: 'Wager not found or not active' }));
+                    }
+                    return;
                   }
                   
                   // Check if winner_id is either creator or receiver
                   if (winner_id !== wager.creator_id && winner_id !== wager.receiver_id) {
-                    res.writeHead(400);
-                    return res.end(JSON.stringify({ message: 'Invalid winner ID' }));
+                    if (!res.headersSent) {
+                      res.writeHead(400);
+                      return res.end(JSON.stringify({ message: 'Invalid winner ID' }));
+                    }
+                    return;
                   }
                   
                   // Update wager status without adding winner_id field
@@ -402,8 +478,11 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                     function(err) {
                       if (err) {
                         console.error('Database error:', err.message);
-                        res.writeHead(500);
-                        return res.end(JSON.stringify({ message: 'Failed to update wager' }));
+                        if (!res.headersSent) {
+                          res.writeHead(500);
+                          return res.end(JSON.stringify({ message: 'Failed to update wager' }));
+                        }
+                        return;
                       }
                       
                       // Calculate total amount (double the wager amount since both users contributed)
@@ -416,16 +495,21 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
                         function(err) {
                           if (err) {
                             console.error('Database error:', err.message);
-                            res.writeHead(500);
-                            return res.end(JSON.stringify({ message: 'Failed to update balance' }));
+                            if (!res.headersSent) {
+                              res.writeHead(500);
+                              return res.end(JSON.stringify({ message: 'Failed to update balance' }));
+                            }
+                            return;
                           }
                           
-                          res.writeHead(200);
-                          res.end(JSON.stringify({ 
-                            message: 'Wager resolved',
-                            winner: winner_id,
-                            amount: totalAmount
-                          }));
+                          if (!res.headersSent) {
+                            res.writeHead(200);
+                            res.end(JSON.stringify({ 
+                              message: 'Wager resolved',
+                              winner: winner_id,
+                              amount: totalAmount
+                            }));
+                          }
                         }
                       );
                     }
@@ -434,8 +518,10 @@ else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
               );
             } catch (error) {
               console.error('Invalid JSON format:', error);
-              res.writeHead(400);
-              res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+              if (!res.headersSent) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+              }
             }
           });
         });
