@@ -176,7 +176,7 @@ export default function SignUp() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('login')} disabled={isLoading}>
+          <TouchableOpacity onPress={() => router.push('/login')} disabled={isLoading}>
             <Text style={styles.loginText}>Login</Text>
           </TouchableOpacity>
         </View>
