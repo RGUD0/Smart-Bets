@@ -184,7 +184,91 @@ const server = http.createServer((req, res) => {
     
     // Apply auth middleware
     applyAuth(req, res);
-  } else {
+  }
+  
+  else if (req.url === '/api/non-friends' && req.method === 'GET') {
+    // Protected route
+    const applyAuth = (req, res, next) => {
+      verifyToken(req, res, () => {
+        const userId = req.user.id; // Get user ID from token
+
+        db.all(
+          `SELECT
+              u.id,
+              u.username
+           FROM
+              balances AS u
+           WHERE
+              u.id != ?  -- Exclude the target user themselves
+              AND u.id NOT IN (
+                SELECT f.friend_id FROM Friends AS f WHERE f.user_id = ?
+                UNION
+                SELECT f.user_id FROM Friends AS f WHERE f.friend_id = ?
+              );`,
+          [userId, userId, userId], // Correct parameter binding
+          (err, rows) => {
+            if (err) {
+              console.error('Database error:', err.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ message: 'Database error' }));
+            } else {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ users: rows })); // Returning the list of users
+            }
+          }
+        );
+      });
+    };
+    
+    // Apply auth middleware
+    applyAuth(req, res);
+  }
+  
+
+  else if (req.url === '/api/add-friend' && req.method === 'POST') {
+    const applyAuth = (req, res, next) => {
+      verifyToken(req, res, () => {
+        let body = '';
+        req.on('data', chunk => {
+          body += chunk.toString();
+        });
+        req.on('end', () => {
+          try {
+            const { friendId } = JSON.parse(body);
+            const userId = req.user.id; // Get user ID from token
+  
+            if (friendId) {
+              db.run(`INSERT INTO Friends (user_id, friend_id) VALUES (?, ?)`, [userId, friendId], function (err) {
+                if (err) {
+                  console.error('Database error:', err.message);
+                  res.writeHead(500);
+                  res.end(JSON.stringify({ message: 'Database error' }));
+                } else {
+                  res.writeHead(200);
+                  res.end(JSON.stringify({ message: 'Friend added successfully' }));
+                }
+              });
+            } else {
+              res.writeHead(400);
+              res.end(JSON.stringify({ message: 'Invalid friend ID' }));
+            }
+          } catch (error) {
+            console.error('Invalid JSON:', error.message);
+            res.writeHead(400);
+            res.end(JSON.stringify({ message: 'Invalid JSON format' }));
+          }
+        });
+      });
+    };
+  
+    applyAuth(req, res);
+  }
+  
+  
+  
+  
+  
+  else {
     // Let the auth routes handler take care of auth endpoints
     // It will only handle the auth routes and pass through others
     return;

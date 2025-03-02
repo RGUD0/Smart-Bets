@@ -1,7 +1,5 @@
 const http = require('http');
 const sqlite3 = require('sqlite3').verbose();
-const { setupAuthRoutes, verifyToken } = require('./authRoutes');
-const bcrypt = require('bcryptjs');
 
 // Create and open an SQLite database
 const db = new sqlite3.Database('./database.db', (err) => {
@@ -9,138 +7,113 @@ const db = new sqlite3.Database('./database.db', (err) => {
     console.error('Failed to open the database:', err.message);
   } else {
     console.log('Connected to the SQLite database.');
-    initializeDatabase();
+
+    // Initialize database after connection
+    initializeDatabase(() => {
+      // Add sample data after the table is created
+      addSampleData();
+    });
   }
 });
 
-// Initialize database schema and seed data
-function initializeDatabase() {
-  db.serialize(() => {
-    // Users table
-    db.run(`CREATE TABLE IF NOT EXISTS Users (
-      user_id TEXT PRIMARY KEY,
-      balance INTEGER,
-      email TEXT UNIQUE,
-      username TEXT,
-      password TEXT,
-      bio TEXT
-    )`, (err) => {
-      if (err) console.error('Error creating Users table:', err.message);
-    });
+// Function to initialize the database
+function initializeDatabase(callback) {
+  // SQL statement to create the wager table
+  const createWagerTable = `
+    CREATE TABLE IF NOT EXISTS Wagers (
+      wager_id TEXT PRIMARY KEY,
+      creator_id TEXT,
+      receiver_id TEXT,
+      wager_amount INTEGER,
+      date TIMESTAMP,
+      expiration_time TIMESTAMP,
+      save_time TIMESTAMP,
+      status TEXT,
+      FOREIGN KEY (creator_id) REFERENCES balances(id),
+      FOREIGN KEY (receiver_id) REFERENCES balances(id)
+    );
+  `;
 
-    // Friends table
-    db.run(`CREATE TABLE IF NOT EXISTS Friends (
-      user_id TEXT,
-      friend_id TEXT,
-      PRIMARY KEY (user_id, friend_id),
-      FOREIGN KEY (user_id) REFERENCES Users(user_id),
-      FOREIGN KEY (friend_id) REFERENCES Users(user_id)
-    )`, (err) => {
-      if (err) console.error('Error creating Friends table:', err.message);
-    });
+  // Execute the SQL statement to create the table
+  db.run(createWagerTable, (err) => {
+    if (err) {
+      console.error('Failed to create the wager table:', err.message);
+    } else {
+      console.log('Wager table created or already exists.');
+      // Call the callback function to proceed with adding sample data
+      callback();
+    }
+  }
+);
 
-    // Favorite Friends table
-    db.run(`CREATE TABLE IF NOT EXISTS FavoriteFriends (
-      user_id TEXT,
-      favorite_friend_id TEXT,
-      PRIMARY KEY (user_id, favorite_friend_id),
-      FOREIGN KEY (user_id) REFERENCES Users(user_id),
-      FOREIGN KEY (favorite_friend_id) REFERENCES Users(user_id)
-    )`, (err) => {
-      if (err) console.error('Error creating FavoriteFriends table:', err.message);
-    });
-
-    // Pending Bets table
-    db.run(`CREATE TABLE IF NOT EXISTS PendingBets (
-      bet_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT,
-      amount REAL NOT NULL,
-      bet_details TEXT,
-      FOREIGN KEY (user_id) REFERENCES Users(user_id)
-    )`, (err) => {
-      if (err) console.error('Error creating PendingBets table:', err.message);
-    });
-
-    // Finished Bets table
-    db.run(`CREATE TABLE IF NOT EXISTS FinishedBets (
-      bet_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT,
-      amount REAL NOT NULL,
-      bet_details TEXT,
-      outcome TEXT,
-      FOREIGN KEY (user_id) REFERENCES Users(user_id)
-    )`, (err) => {
-      if (err) console.error('Error creating FinishedBets table:', err.message);
-    });
-
-    console.log('All tables created or already exist.');
-
-    // Seed test users
-    db.get("SELECT COUNT(*) as count FROM Users", [], (err, row) => {
-      if (err) {
-        console.error('Error checking users:', err.message);
-      } else if (row.count === 0) {
-        console.log('Adding test users');
-        bcrypt.genSalt(10, (err, salt) => {
-          if (err) {
-            console.error('Error generating salt:', err.message);
-            return;
-          }
-          bcrypt.hash('password123', salt, (err, hash) => {
-            if (err) {
-              console.error('Error hashing password:', err.message);
-              return;
-            }
-            db.run(`INSERT INTO Users (user_id, balance, email, username, password, bio) 
-                    VALUES (?, ?, ?, ?, ?, ?)`,
-                    ['user1', 100, 'user1@gmail.com', 'John Doe', hash, 'Hi there!'],
-                    (err) => {
-                      if (err) console.error('Error inserting user1:', err.message);
-                    });
-            db.run(`INSERT INTO Users (user_id, balance, email, username, password, bio) 
-                    VALUES (?, ?, ?, ?, ?, ?)`,
-                    ['user2', 200, 'user2@gmail.com', 'Jane Smith', hash, 'Hello there!'],
-                    (err) => {
-                      if (err) console.error('Error inserting user2:', err.message);
-                    });
-          });
-        });
-      }
-    });
-  });
 }
 
-const server = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Content-Type', 'application/json');
+// Function to add sample data to the wager table
+function addSampleData() {
+  // Sample data to insert into the wager table
+  const sampleData = [
+    {
+      wager_id: 'wager001',
+      creator_id: 'user1',
+      receiver_id: 'user2',
+      wager_name: "Win Hackathon",
+      wager_amount: 100,
+      date: '2023-10-01 12:00:00',
+      expiration_time: '2025-02-08 12:00:00',
+      save_time: '2023-10-01 12:00:00',
+      status: 'pending',
+    },
+    {
+      wager_id: 'wager002',
+      creator_id: 'user_1740880015421',
+      receiver_id: 'user_1740880092950',
+      wager_name: "Do the Dishes",
+      wager_amount: 200,
+      date: '2023-10-02 14:30:00',
+      expiration_time: '2023-10-09 14:30:00',
+      save_time: '2023-10-02 14:30:00',
+      status: 'accepted',
+    },
+    {
+      wager_id: 'wager003',
+      creator_id: 'user_1740880092950',
+      receiver_id: 'user2',
+      wager_name: "Get a 95 on my Computer Science Exam",
+      wager_amount: 150,
+      date: '2023-10-03 10:15:00',
+      expiration_time: '2023-10-10 10:15:00',
+      save_time: '2023-10-03 10:15:00',
+      status: 'completed',
+    },
+  ];
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    return res.end();
-  }
+  // SQL statement to insert data into the wager table
+  const insertWager = `
+    INSERT INTO Wagers (wager_id, creator_id, receiver_id, wager_amount, date, expiration_time, save_time, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+  `;
 
-  if (req.url === '/api/balance' && req.method === 'GET') {
-    verifyToken(req, res, () => {
-      const userId = req.user.id;
-      db.get("SELECT balance FROM Users WHERE user_id = ?", [userId], (err, row) => {
+  // Insert each sample data entry into the table
+  sampleData.forEach((data) => {
+    db.run(
+      insertWager,
+      [
+        data.wager_id,
+        data.creator_id,
+        data.receiver_id,
+        data.wager_amount,
+        data.date,
+        data.expiration_time,
+        data.save_time,
+        data.status,
+      ],
+      (err) => {
         if (err) {
-          console.error('Database error:', err.message);
-          res.writeHead(500);
-          res.end(JSON.stringify({ message: 'Database error' }));
-        } else if (row) {
-          res.writeHead(200);
-          res.end(JSON.stringify({ balance: row.balance }));
+          console.error('Failed to insert data:', err.message);
         } else {
-          res.writeHead(404);
-          res.end(JSON.stringify({ message: 'User not found' }));
+          console.log(`Inserted wager with ID: ${data.wager_id}`);
         }
-      });
-    });
-  }
-});
-
-server.listen(3000, () => {
-  console.log('Server is running on port 3000');
-});
+      }
+    );
+  });
+}

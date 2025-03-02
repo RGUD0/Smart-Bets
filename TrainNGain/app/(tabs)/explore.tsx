@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface User {
@@ -20,18 +19,22 @@ const UserList: React.FC = () => {
     const fetchAllUsers = async () => {
       setIsLoading(true);
       setError(null);
-      
+  
       try {
-        const response = await fetch('http://localhost:5001/api/users/all');
-        
+        const token = localStorage.getItem('token'); // Retrieve stored token
+        const response = await fetch('http://localhost:5001/api/non-friends', {
+          headers: {
+            Authorization: `Bearer ${token}`, // Add token to request
+          },
+        });
+  
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        
+  
         const data = await response.json();
-        const fetchedUsers = data.users || [];
-        setUsers(fetchedUsers);
-        setFilteredUsers(fetchedUsers);
+        setUsers(data.users || []);
+        setFilteredUsers(data.users || []);
       } catch (err) {
         setError('Failed to fetch users: ' + (err instanceof Error ? err.message : String(err)));
         console.error('Error fetching users:', err);
@@ -39,16 +42,20 @@ const UserList: React.FC = () => {
         setIsLoading(false);
       }
     };
-
+  
     fetchAllUsers();
   }, []);
 
   useEffect(() => {
-    const filtered = users.filter(user => 
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.bio.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filtered = users.filter(user => {
+      const username = user.username?.toLowerCase() || '';
+      const email = user.email?.toLowerCase() || '';
+      const bio = user.bio?.toLowerCase() || '';
+      const query = searchQuery?.toLowerCase() || '';
+  
+      return username.includes(query) || email.includes(query) || bio.includes(query);
+    });
+  
     setFilteredUsers(filtered);
   }, [searchQuery, users]);
 
@@ -57,27 +64,29 @@ const UserList: React.FC = () => {
   };
 
   const handleAddFriend = async (userId: string) => {
-    console.log(`Adding friend: ${userId}`);
+    const token = localStorage.getItem('token');
   
     try {
-      const response = await fetch('http://localhost:5000/addFriend', {
+      const response = await fetch('http://localhost:5001/api/add-friend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          userId: currentUserId,  // assuming `currentUserId` is the logged-in user's ID
-          friendId: userId,
-        }),
+        body: JSON.stringify({ friendId: userId })
       });
   
+      const result = await response.json();
       if (response.ok) {
-        console.log('Friend added successfully');
+        alert('Friend added successfully!');
+        // Optional: Remove user from list or refresh list
+        setFilteredUsers(filteredUsers.filter(user => user.id !== userId));
       } else {
-        console.error('Failed to add friend');
+        alert(result.message);
       }
-    } catch (error) {
-      console.error('Error adding friend:', error);
+    } catch (err) {
+      console.error('Failed to add friend:', err);
+      alert('Failed to add friend. Try again.');
     }
   };
   
@@ -113,8 +122,15 @@ const UserList: React.FC = () => {
             <p style={{ color: '#666666', fontSize: '14px', marginBottom: '8px' }}>
               {filteredUsers.length} {filteredUsers.length === 1 ? 'person' : 'people'}
             </p>
-            
-            <div>
+
+            {/* Scrollable Container */}
+            <div style={{ 
+              maxHeight: '400px',  // Set a max height to enable scrolling
+              overflowY: 'auto', 
+              border: '1px solid #ddd', 
+              borderRadius: '8px',
+              padding: '8px'
+            }}>
               {filteredUsers.map(user => (
                 <div 
                   key={user.id} 
@@ -186,7 +202,7 @@ const UserList: React.FC = () => {
                 </div>
               ))}
             </div>
-            
+
             {filteredUsers.length === 0 && (
               <div style={{ textAlign: 'center', padding: '40px 0', color: '#666666' }}>
                 <p>No users match your search.</p>
