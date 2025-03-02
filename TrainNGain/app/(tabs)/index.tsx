@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Platform, TouchableOpacity, FlatList } from 'react-native';
+import { Image, StyleSheet, Platform, TouchableOpacity, FlatList, Modal, View, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator } from 'react-native';
@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../AuthContext'; // <-- Adjust this import path if needed
 
-// Mock transaction data
+// transaction data
 const transactions = [
   { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Completing Seattle 5k', time: '2h ago' },
   { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Finishing homework by Thursday 12am', time: '5h ago' },
@@ -42,18 +42,17 @@ export default function HomeScreen() {
   const { authFetch } = useAuth(); // <-- Access authFetch from context
   const [balance, setBalance] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
+  const [betDetails, setBetDetails] = useState(""); // State to capture bet details
 
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        // Use authFetch with a relative path so it includes the Authorization header
         const data = await authFetch('/api/balance');
-
         console.log('Fetched balance:', data);
         if (data && typeof data.balance === 'number') {
           setBalance(data.balance);
         } else {
-          console.error('Invalid balance format:', data);
           setBalance(null);
         }
       } catch (error) {
@@ -95,16 +94,6 @@ export default function HomeScreen() {
         ) : (
           <ThemedText type="title">{balance ? `${balance} points` : 'N/A'}</ThemedText>
         )}
-        <ThemedView style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-up-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Pay</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="arrow-down-outline" size={20} color="white" />
-            <ThemedText style={styles.actionButtonText}>Request</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
       </ThemedView>
 
       {/* Transactions Feed */}
@@ -125,10 +114,48 @@ export default function HomeScreen() {
         />
       </ThemedView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.floatingActionButton}>
-        <Ionicons name="scan-outline" size={28} color="white" />
+      {/* Floating Action Button with Plus Sign */}
+      <TouchableOpacity
+        style={styles.floatingActionButton}
+        onPress={() => setModalVisible(true)} // Show the modal when button is pressed
+      >
+        <ThemedText style={styles.plusButton}>+</ThemedText>
       </TouchableOpacity>
+
+      {/* Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)} // Close the modal on request
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>Enter Bet Details</ThemedText>
+            <TextInput
+              style={styles.textInput} // Use the style here
+              placeholder="Bet Details"
+              value={betDetails}
+              onChangeText={setBetDetails}
+            />
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => {
+                console.log("Bet Details: ", betDetails);
+                setModalVisible(false); // Close modal after submitting
+              }}
+            >
+              <ThemedText style={styles.submitButtonText}>Submit Bet</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)} // Close modal without submitting
+            >
+              <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -169,25 +196,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-  },
-  actionButton: {
-    backgroundColor: '#3D95CE',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 24,
-    gap: 8,
-  },
-  actionButtonText: {
-    color: 'white',
-    fontWeight: '600',
   },
   transactionsContainer: {
     flex: 1,
@@ -241,18 +249,65 @@ const styles = StyleSheet.create({
   },
   floatingActionButton: {
     position: 'absolute',
-    right: 24,
+    left: '50%',
     bottom: 24,
+    width: 60,
+    height: 60,
     backgroundColor: '#3D95CE',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ translateX: -30 }],
+  },
+  plusButton: {
+    fontSize: 36,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Overlay background
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  textInput: {
+    height: 40,
+    borderColor: '#cccccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 20,
+    paddingLeft: 10,
+  },
+  submitButton: {
+    backgroundColor: '#3D95CE',
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  closeButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    backgroundColor: '#CCCCCC',
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
 });

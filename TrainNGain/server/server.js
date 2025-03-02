@@ -224,7 +224,6 @@ const server = http.createServer((req, res) => {
     applyAuth(req, res);
   }
   
-
   else if (req.url === '/api/add-friend' && req.method === 'POST') {
     const applyAuth = (req, res, next) => {
       verifyToken(req, res, () => {
@@ -263,6 +262,7 @@ const server = http.createServer((req, res) => {
   
     applyAuth(req, res);
   }
+
   
   
   

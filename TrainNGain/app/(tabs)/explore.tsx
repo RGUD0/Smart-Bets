@@ -88,6 +88,7 @@ const UserList: React.FC = () => {
       console.error('Failed to add friend:', err);
       alert('Failed to add friend. Try again.');
     }
+    useEffect
   };
   
 
