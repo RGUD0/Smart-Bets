@@ -2,17 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../AuthContext';
+import Svg, { Rect, TSpan, Text as SvgText } from 'react-native-svg';
 
 const FriendsScreen = () => {
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const { authFetch } = useAuth(); // <-- Access authFetch from context
+  const { authFetch } = useAuth();
+
+  // Hardcoded leaderboard data
+  const leaderboardData = [
+    { id: '1', name: 'coffeeguy64', score: 80 },
+    { id: '2', name: 'udhacks25', score: 120 },
+    { id: '3', name: 'MorganLee', score: 90 },
+    { id: '4', name: 'cowhen12', score: 110 },
+    { id: '5', name: 'mousekeyboard', score: 110 },
+    { id: '6', name: 'You!', score: 50 },
+  ];
+
+  const renderBarChart = (data) => {
+    const maxScore = Math.max(...data.map(item => item.score));
+    const chartHeight = 200;
+    const barWidth = 40;
+    const spacing = 50; 
+    const svgWidth = data.length * (barWidth + spacing);
+    const svgHeight = chartHeight + 80; // More height to prevent cutoff
+  
+    return (
+      <View style={[styles.chartContainer, { overflow: 'visible'}]}>
+        <Svg height={svgHeight} width={svgWidth}>
+          {data.map((item, index) => {
+            const barHeight = (item.score / maxScore) * chartHeight;
+            return (
+              <React.Fragment key={item.id}>
+                {/* Bars */}
+                <Rect
+                  x={index * (barWidth + spacing) + spacing / 2}
+                  y={chartHeight - barHeight}
+                  width={barWidth}
+                  height={barHeight}
+                  fill="#28A745"
+                />
+                {/* Labels */}
+                <SvgText
+  x={index * (barWidth + spacing) + spacing / 2 + barWidth / 2}
+  y={chartHeight + 60} 
+  fontSize="12"
+  fill="black"
+  textAnchor="middle"
+>
+  <TSpan>{item.name}</TSpan>
+</SvgText>
+
+
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      </View>
+    );
+  };
+  
 
   useEffect(() => {
-    // Fetch friends from API when the component mounts
     const fetchFriends = async () => {
       try {
-        const data = await authFetch('/api/friends'); // Use authFetch here
+        const data = await authFetch('/api/friends');
         if (data && data.friends) {
           setFriends(data.friends);
         } else {
@@ -23,10 +77,9 @@ const FriendsScreen = () => {
         Alert.alert('Error', 'Something went wrong');
       }
     };
-  
+
     fetchFriends();
-  }, []); // Empty dependency array means this runs once when the component mounts
-  
+  }, []);
 
   // Function to add a new friend (mock implementation)
   const addFriend = () => {
@@ -44,26 +97,7 @@ const FriendsScreen = () => {
     setSearchQuery('');
   };
 
-  // Function to remove a friend
-  const removeFriend = (id) => {
-    Alert.alert(
-      'Remove Friend',
-      'Are you sure you want to remove this friend?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            setFriends(friends.filter((friend) => friend.id !== id));
-          },
-        },
-      ],
-    );
-  };
+
 
   // Function to toggle a friend as favorite
   const toggleFavorite = (id) => {
@@ -79,6 +113,20 @@ const FriendsScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Friends View</Text>
+          <TouchableOpacity>
+            <Ionicons name="settings-outline" size={24} color="#388E3C" /> {/* Green settings icon */}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Weekly Leaderboard */}
+      <Text style={styles.leaderboardTitle}>Weekly Leaderboard</Text>
+      {renderBarChart(leaderboardData)}
+
       {/* Search Bar to Add New Friends */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -126,6 +174,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F7',
     padding: 16,
   },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#C8E6C9', // Light green border
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    color: '#388E3C', // Dark green title
+    fontSize: 20,
+  },
+  leaderboardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  chartContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  labelsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center', // Center the labels
+    marginTop: 5,
+  },
+  label: {
+    fontSize: 12,
+    color: '#333',
+  },  
   searchContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -142,7 +226,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDDDDD',
   },
   addButton: {
-    backgroundColor: '#28A745',  // Green color here
+    backgroundColor: '#28A745',
     borderRadius: 8,
     width: 50,
     justifyContent: 'center',
@@ -178,10 +262,6 @@ const styles = StyleSheet.create({
   friendStatus: {
     fontSize: 14,
     color: '#888888',
-  },
-  // Update the icon colors for favorite and remove button
-  addButtonIcon: {
-    color: 'white',
   },
 });
 
