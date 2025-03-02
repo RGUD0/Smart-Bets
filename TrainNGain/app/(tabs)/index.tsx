@@ -478,8 +478,8 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
           <ThemedView style={styles.headerTitleContainer}>
-            <ThemedText type="title" style={styles.headerTitle}>Pinky Promises</ThemedText>
-            <ThemedText style={styles.headerSubtitle}>Growing healthy habits with friends!</ThemedText>
+            <ThemedText type="title" style={styles.headerTitle}>Smart Bets</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>Promoting healthy habits with friends!</ThemedText>
           </ThemedView>
           <TouchableOpacity onPress={() => setNotificationsModalVisible(true)}>
             <Ionicons name="notifications-outline" size={24} color="#4CAF50" />
