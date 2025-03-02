@@ -13,14 +13,17 @@ const db = new sqlite3.Database('./database.db', (err) => {
 // Create the 'balances' table if it doesn't exist
 db.run(`CREATE TABLE IF NOT EXISTS balances (
   id TEXT PRIMARY KEY,
-  balance INTEGER
+  balance INTEGER,
+  email TEXT,
+  username TEXT,
+  bio TEXT
 )`);
 
 // Insert initial data (you can remove this after you populate the DB with real data)
 const initData = () => {
   const stmt = db.prepare("INSERT OR IGNORE INTO balances (id, balance) VALUES (?, ?)");
-  stmt.run('user1', 100);
-  stmt.run('user2', 200);
+  stmt.run('user1', 100, 'user1@gmail.com', 'user11',    'Hi there! I love building apps with React Native and exploring new technologies.'  );
+  stmt.run('user2', 200, 'user1@gmail.com', 'user22',    'Hello there! I love building apps with React Native and exploring new technologies.');
   stmt.finalize();
 };
 
@@ -49,7 +52,23 @@ const server = http.createServer((req, res) => {
       }
     });
 
-  } else if (req.url === '/api/update-balance' && req.method === 'POST') {
+  } 
+  else if (req.url === '/api/user/profile' && req.method === 'GET') {
+    const userId = 'user1'; // Example: You can replace this with a dynamic value
+  
+    db.get("SELECT id, username, email, bio, balance FROM users WHERE id = ?", [userId], (err, row) => {
+      if (err) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ message: 'Database error' }));
+      } else if (row) {
+        res.writeHead(200);
+        res.end(JSON.stringify({ user: row }));
+      } else {
+        res.writeHead(404);
+        res.end(JSON.stringify({ message: 'User not found' }));
+      }
+    });
+  }else if (req.url === '/api/update-balance' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
