@@ -24,7 +24,15 @@ interface Wager {
 }
 
 // Wager Item Component
-const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string }) => {
+const WagerItem = ({ 
+  item, 
+  currentUserId, 
+  onResolve 
+}: { 
+  item: Wager; 
+  currentUserId: string;
+  onResolve: (wager: Wager) => void;
+}) => {
   // Calculate relative time (e.g., "2h ago")
   const getRelativeTime = (dateString: string) => {
     const now = new Date();
@@ -51,6 +59,10 @@ const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string
     ? (item.receiver_username || item.receiver_id) 
     : (item.creator_username || item.creator_id);
   
+  // Determine if the user can resolve this wager (only creators can resolve)
+  // Show Choose Winner button for both 'pending' and 'approval' status
+  const canResolve = isCreator && (item.status === 'approval' || item.status === 'pending');
+  
   return (
     <ThemedView style={styles.wagerItem}>
       <ThemedView style={styles.avatarContainer}>
@@ -65,6 +77,16 @@ const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string
         </ThemedView>
         <ThemedText>{item.wager_description}</ThemedText>
         <ThemedText style={styles.statusText}>Status: {item.status}</ThemedText>
+        
+        {/* Choose Winner Button - Show for creator and resolvable statuses */}
+        {canResolve && (
+          <TouchableOpacity 
+            style={styles.chooseWinnerButton}
+            onPress={() => onResolve(item)}
+          >
+            <ThemedText style={styles.chooseWinnerText}>Choose Winner</ThemedText>
+          </TouchableOpacity>
+        )}
       </ThemedView>
       <ThemedText style={styles.amountText}>{item.wager_amount} points</ThemedText>
     </ThemedView>
@@ -144,6 +166,12 @@ export default function HomeScreen() {
   const [expirationDate, setExpirationDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  // Winner selection modal state
+  const [resolveModalVisible, setResolveModalVisible] = useState(false);
+  const [selectedWager, setSelectedWager] = useState<Wager | null>(null);
+  // Add a loading state for wager resolution
+  const [resolvingWager, setResolvingWager] = useState(false);
 
   // Format the date and time for display
   const formattedDate = expirationDate.toLocaleDateString();
@@ -306,8 +334,12 @@ export default function HomeScreen() {
     }
   };
 
+  // Updated handleResolveWager function with better error handling
   const handleResolveWager = async (wagerId: string, winnerId: string) => {
     try {
+      setResolvingWager(true); // Set loading state
+      console.log(`Resolving wager ${wagerId} with winner ${winnerId}`);
+      
       const response = await authFetch('/api/wagers/resolve', {
         method: 'PUT',
         body: JSON.stringify({
@@ -316,22 +348,32 @@ export default function HomeScreen() {
         })
       });
       
-      console.log('Wager resolved:', response);
+      console.log('Wager resolved successfully:', response);
       
       // Refresh wagers and balance
-      fetchPendingWagers();
-      fetchIncomingWagers();
-      fetchBalance();
-    } catch (error) {
+      await fetchPendingWagers();
+      await fetchIncomingWagers();
+      await fetchBalance();
+      
+      // Alert success if needed
+      // alert('Wager resolved successfully!');
+      
+      // Close the resolve modal
+      setResolveModalVisible(false);
+      setSelectedWager(null);
+    } catch (error: any) {
       console.error('Error resolving wager:', error);
+      
+      // Show error message to user
+      alert(`Failed to resolve wager: ${error.message || 'Unknown error'}`);
+    } finally {
+      setResolvingWager(false); // Clear loading state
     }
   };
 
-  // Add this function to open the resolve modal
-  const [resolveModalVisible, setResolveModalVisible] = useState(false);
-  const [selectedWager, setSelectedWager] = useState<Wager | null>(null);
-
+  // Function to open the resolve modal
   const openResolveModal = (wager: Wager) => {
+    console.log('Opening resolve modal for wager:', wager);
     setSelectedWager(wager);
     setResolveModalVisible(true);
   };
@@ -471,7 +513,13 @@ export default function HomeScreen() {
             {pendingWagers.length > 0 ? (
               <FlatList
                 data={pendingWagers}
-                renderItem={({ item }) => <WagerItem item={item} currentUserId={user?.id || ''} />}
+                renderItem={({ item }) => (
+                  <WagerItem 
+                    item={item} 
+                    currentUserId={user?.id || ''} 
+                    onResolve={openResolveModal}
+                  />
+                )}
                 keyExtractor={(item) => item.wager_id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.wagersList}
@@ -666,6 +714,59 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Resolve Wager Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={resolveModalVisible}
+        onRequestClose={() => setResolveModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>Choose Winner</ThemedText>
+            
+            {selectedWager && (
+              <>
+                <ThemedText style={styles.wagerSummary}>{selectedWager.wager_description}</ThemedText>
+                <ThemedText style={styles.wagerAmount}>{selectedWager.wager_amount} points</ThemedText>
+                
+                {resolvingWager ? (
+                  <ActivityIndicator size="large" color="#4CAF50" style={{marginVertical: 20}} />
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={styles.winnerButton}
+                      onPress={() => handleResolveWager(selectedWager.wager_id, selectedWager.creator_id)}
+                    >
+                      <ThemedText style={styles.winnerButtonText}>
+                        {selectedWager.creator_username || selectedWager.creator_id} (Creator)
+                      </ThemedText>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={styles.winnerButton}
+                      onPress={() => handleResolveWager(selectedWager.wager_id, selectedWager.receiver_id)}
+                    >
+                      <ThemedText style={styles.winnerButtonText}>
+                        {selectedWager.receiver_username || selectedWager.receiver_id} (Recipient)
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </>
+            )}
+            
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setResolveModalVisible(false)}
+              disabled={resolvingWager}
+            >
+              <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -801,6 +902,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     width: '80%',
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 18,
@@ -892,6 +994,45 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: 'white',
+    fontWeight: '600',
+  },
+  // Choose winner functionality styles
+  chooseWinnerButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  chooseWinnerText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  wagerSummary: {
+    fontSize: 16,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  wagerAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  winnerButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    marginVertical: 5,
+    alignItems: 'center',
+  },
+  winnerButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
