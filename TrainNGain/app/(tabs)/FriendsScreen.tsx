@@ -1,35 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-// Mock data for friends and their activities
-const mockFriends = [
-  {
-    id: '1',
-    name: 'Alex Kim',
-    status: '🏃 Just went for a run',
-    avatar: 'https://placekitten.com/100/100', // Replace with actual image URL
-    isFavorite: false,
-  },
-  {
-    id: '2',
-    name: 'Morgan Lee',
-    status: '📚 Reading a new book',
-    avatar: 'https://placekitten.com/101/101', // Replace with actual image URL
-    isFavorite: false,
-  },
-  {
-    id: '3',
-    name: 'Jordan Bell',
-    status: '🧹 Cleaning the apartment',
-    avatar: 'https://placekitten.com/102/102', // Replace with actual image URL
-    isFavorite: false,
-  },
-];
+import { useAuth } from '../AuthContext';
 
 const FriendsScreen = () => {
-  const [friends, setFriends] = useState(mockFriends);
+  const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const { authFetch } = useAuth(); // <-- Access authFetch from context
+
+  useEffect(() => {
+    // Fetch friends from API when the component mounts
+    const fetchFriends = async () => {
+      try {
+        const data = await authFetch('/api/friends'); // Use authFetch here
+        if (data && data.friends) {
+          setFriends(data.friends);
+        } else {
+          Alert.alert('Error', 'Failed to fetch friends');
+        }
+      } catch (error) {
+        console.error('Error fetching friends:', error);
+        Alert.alert('Error', 'Something went wrong');
+      }
+    };
+  
+    fetchFriends();
+  }, []); // Empty dependency array means this runs once when the component mounts
+  
 
   // Function to add a new friend (mock implementation)
   const addFriend = () => {

@@ -306,6 +306,41 @@ const server = http.createServer((req, res) => {
     // Apply auth middleware
     applyAuth(req, res);        
   }  
+  
+ else if (req.url === '/api/friends' && req.method === 'GET') {
+  const applyAuth = (req, res, next) => {
+    verifyToken(req, res, () => {
+      const userId = req.user.id;
+      db.all(
+        `SELECT Friends.friend_id, balances.username 
+         FROM Friends 
+         INNER JOIN balances ON Friends.friend_id = balances.id 
+         WHERE Friends.user_id = ?`,
+        [userId],
+        (err, rows) => {
+          if (err) {
+            console.error('Database error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Database error' }));
+          } else {
+            const formattedFriends = rows.map(row => ({
+              id: row.friend_id,
+              name: row.username, // Now using the actual username from the Users table
+              avatar: 'https://placekitten.com/100/100',
+              isFavorite: false
+            }));
+      
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ friends: formattedFriends }));
+          }
+        }
+      );
+    });
+  };
+
+  applyAuth(req, res);
+}
+  
   else {
     // Let the auth routes handler take care of auth endpoints
     // It will only handle the auth routes and pass through others
