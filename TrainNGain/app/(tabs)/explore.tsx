@@ -21,10 +21,10 @@ const UserList: React.FC = () => {
       setError(null);
   
       try {
-        const token = localStorage.getItem('token'); // Retrieve stored token
+        const token = localStorage.getItem('token');
         const response = await fetch('http://localhost:5001/api/non-friends', {
           headers: {
-            Authorization: `Bearer ${token}`, // Add token to request
+            Authorization: `Bearer ${token}`,
           },
         });
   
@@ -79,7 +79,6 @@ const UserList: React.FC = () => {
       const result = await response.json();
       if (response.ok) {
         alert('Friend added successfully!');
-        // Optional: Remove user from list or refresh list
         setFilteredUsers(filteredUsers.filter(user => user.id !== userId));
       } else {
         alert(result.message);
@@ -88,9 +87,7 @@ const UserList: React.FC = () => {
       console.error('Failed to add friend:', err);
       alert('Failed to add friend. Try again.');
     }
-    useEffect
   };
-  
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
@@ -124,9 +121,8 @@ const UserList: React.FC = () => {
               {filteredUsers.length} {filteredUsers.length === 1 ? 'person' : 'people'}
             </p>
 
-            {/* Scrollable Container */}
             <div style={{ 
-              maxHeight: '400px',  // Set a max height to enable scrolling
+              maxHeight: '400px',  
               overflowY: 'auto', 
               border: '1px solid #ddd', 
               borderRadius: '8px',

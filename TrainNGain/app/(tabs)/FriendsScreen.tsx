@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDDDDD',
   },
   addButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#28A745',  // Green color here
     borderRadius: 8,
     width: 50,
     justifyContent: 'center',
@@ -181,6 +181,10 @@ const styles = StyleSheet.create({
   friendStatus: {
     fontSize: 14,
     color: '#888888',
+  },
+  // Update the icon colors for favorite and remove button
+  addButtonIcon: {
+    color: 'white',
   },
 });
 

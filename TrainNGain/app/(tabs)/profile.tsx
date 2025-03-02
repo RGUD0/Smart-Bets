@@ -58,14 +58,14 @@ export default function ProfileScreen() {
             Profile
           </ThemedText>
           <TouchableOpacity>
-            <Ionicons name="settings-outline" size={24} color="#3D95CE" />
+            <Ionicons name="settings-outline" size={24} color="#388E3C" /> {/* Green settings icon */}
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
 
       {loading ? (
         <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3D95CE" />
+          <ActivityIndicator size="large" color="#388E3C" /> {/* Green loading indicator */}
           <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
         </ThemedView>
       ) : (
@@ -96,33 +96,33 @@ export default function ProfileScreen() {
           {/* Profile Options */}
           <ThemedView style={styles.optionsContainer}>
             <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="person-outline" size={24} color="#3D95CE" />
+              <Ionicons name="person-outline" size={24} color="#388E3C" /> {/* Green icon */}
               <ThemedText style={styles.optionText}>Edit Profile</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#999999" />
+              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="create-outline" size={24} color="#3D95CE" />
+              <Ionicons name="create-outline" size={24} color="#388E3C" /> {/* Green icon */}
               <ThemedText style={styles.optionText}>Edit Bio</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#999999" />
+              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="shield-checkmark-outline" size={24} color="#3D95CE" />
+              <Ionicons name="shield-checkmark-outline" size={24} color="#388E3C" /> {/* Green icon */}
               <ThemedText style={styles.optionText}>Privacy & Security</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#999999" />
+              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
+              <Ionicons name="notifications-outline" size={24} color="#388E3C" /> {/* Green icon */}
               <ThemedText style={styles.optionText}>Notifications</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#999999" />
+              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="help-circle-outline" size={24} color="#3D95CE" />
+              <Ionicons name="help-circle-outline" size={24} color="#388E3C" /> {/* Green icon */}
               <ThemedText style={styles.optionText}>Help & Support</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#999999" />
+              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
           </ThemedView>
 
@@ -138,14 +138,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
   },
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: '#C8E6C9', // Light green border
   },
   headerContent: {
     flexDirection: 'row',
@@ -153,7 +152,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: {
-    color: '#3D95CE',
+    color: '#388E3C', // Dark green title
     fontSize: 20,
   },
   loadingContainer: {
@@ -163,7 +162,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#666666',
+    color: '#388E3C', // Green loading text
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
@@ -191,11 +190,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emailText: {
-    color: '#666666',
+    color: '#388E3C', // Dark green email text
     marginTop: 4,
   },
   bioText: {
-    color: '#666666',
+    color: '#388E3C', // Dark green bio text
     marginTop: 10,
     textAlign: 'center',
     paddingHorizontal: 20,
@@ -203,7 +202,7 @@ const styles = StyleSheet.create({
   },
   balanceSection: {
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    borderTopColor: '#C8E6C9', // Light green border for balance section
     paddingTop: 16,
     alignItems: 'center',
   },
@@ -222,14 +221,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: '#C8E6C9', // Light green border for options
   },
   optionText: {
     flex: 1,
     marginLeft: 12,
   },
   logoutButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#388E3C', // Green logout button
     margin: 16,
     padding: 16,
     borderRadius: 10,

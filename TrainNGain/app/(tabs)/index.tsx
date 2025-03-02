@@ -7,8 +7,9 @@ import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../AuthContext'; // <-- Adjust this import path if needed
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
-// transaction data
+// Transaction data
 const transactions = [
   { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Completing Seattle 5k', time: '2h ago' },
   { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Finishing homework by Thursday 12am', time: '5h ago' },
@@ -17,6 +18,13 @@ const transactions = [
   { id: '5', user: 'You', action: 'have a timed-out promise to', target: 'Morgan Lee', amount: '-15 points', description: 'Doing stats homework', time: '3d ago' },
   { id: '6', user: 'Riley Chen', action: 'promised', target: 'You', amount: '5 points', description: 'Morning yoga', time: '4d ago' },
   { id: '7', user: 'You', action: 'promised', target: 'Sam Adams', amount: '10 points', description: 'Going to career fair', time: '5d ago' },
+];
+
+// Notification data
+const notifications = [
+  { id: '1', message: 'Alex Kim promised you 10 points for completing the Seattle 5k!', time: '2h ago' },
+  { id: '2', message: 'Your promise to Taylor Swift has been fulfilled!', time: '5h ago' },
+  { id: '3', message: 'Morgan Lee fulfilled a promise to Gerald!', time: '1d ago' },
 ];
 
 // Transaction Item Component
@@ -38,12 +46,39 @@ const TransactionItem = ({ item }) => (
   </ThemedView>
 );
 
+// Notification Item Component
+const NotificationItem = ({ item }) => (
+  <ThemedView style={styles.notificationItem}>
+    <ThemedText>{item.message}</ThemedText>
+    <ThemedText style={styles.timeText}>{item.time}</ThemedText>
+  </ThemedView>
+);
+
 export default function HomeScreen() {
   const { authFetch } = useAuth(); // <-- Access authFetch from context
   const [balance, setBalance] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
-  const [betDetails, setBetDetails] = useState(""); // State to capture bet details
+  const [modalVisible, setModalVisible] = useState(false); // State for promise modal visibility
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false); // State for notifications modal visibility
+  const [searchTerm, setSearchTerm] = useState(""); // State for search term
+  const [description, setDescription] = useState(""); // State for description
+  const [amount, setAmount] = useState(""); // State for amount
+  const [expirationDate, setExpirationDate] = useState(new Date()); // State for the selected date
+  const [showDatePicker, setShowDatePicker] = useState(false); // State to control date picker visibility
+
+  // Handle date change
+  const handleDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate: Date | undefined
+  ) => {
+    setShowDatePicker(Platform.OS === 'ios'); // On iOS, keep the picker open
+    if (selectedDate) {
+      setExpirationDate(selectedDate); // Update the selected date
+    }
+  };
+
+  // Format the date for display
+  const formattedDate = expirationDate.toLocaleDateString();
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -75,12 +110,15 @@ export default function HomeScreen() {
         <ThemedView style={styles.headerContent}>
           <TouchableOpacity>
             <Image
-              source={require('@/assets/images/partial-react-logo.png')}
+              source={require('@/assets/images/cuteplant.png')}
               style={styles.profilePic}
             />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>Venmo</ThemedText>
-          <TouchableOpacity>
+          <ThemedView style={styles.headerTitleContainer}>
+            <ThemedText type="title" style={styles.headerTitle}>Pinky Promises</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>Growing healthy habits with friends!</ThemedText>
+          </ThemedView>
+          <TouchableOpacity onPress={() => setNotificationsModalVisible(true)}>
             <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
           </TouchableOpacity>
         </ThemedView>
@@ -117,12 +155,12 @@ export default function HomeScreen() {
       {/* Floating Action Button with Plus Sign */}
       <TouchableOpacity
         style={styles.floatingActionButton}
-        onPress={() => setModalVisible(true)} // Show the modal when button is pressed
+        onPress={() => setModalVisible(true)} // Show the promise modal when button is pressed
       >
         <ThemedText style={styles.plusButton}>+</ThemedText>
       </TouchableOpacity>
 
-      {/* Modal */}
+      {/* Promise Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -131,21 +169,63 @@ export default function HomeScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Enter Bet Details</ThemedText>
+            <ThemedText style={styles.modalTitle}>Enter Promise Details</ThemedText>
+
+            {/* Search Bar */}
             <TextInput
-              style={styles.textInput} // Use the style here
-              placeholder="Bet Details"
-              value={betDetails}
-              onChangeText={setBetDetails}
+              style={styles.textInput}
+              placeholder="Search..."
+              value={searchTerm}
+              onChangeText={setSearchTerm}
             />
+
+            {/* Description Box */}
+            <TextInput
+              style={styles.textInput}
+              placeholder="Description"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+            />
+
+            {/* Amount Input */}
+            <TextInput
+              style={styles.textInput}
+              placeholder="Amount"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+            />
+
+            {/* Date Picker */}
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <ThemedText>{formattedDate}</ThemedText>
+            </TouchableOpacity>
+
+            {/* Date Picker Component */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={expirationDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+              />
+            )}
+
             <TouchableOpacity
               style={styles.submitButton}
               onPress={() => {
-                console.log("Bet Details: ", betDetails);
+                console.log("Search Term: ", searchTerm);
+                console.log("Description: ", description);
+                console.log("Amount: ", amount);
+                console.log("Expiration Date: ", expirationDate);
                 setModalVisible(false); // Close modal after submitting
               }}
             >
-              <ThemedText style={styles.submitButtonText}>Submit Bet</ThemedText>
+              <ThemedText style={styles.submitButtonText}>Submit Promise</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.closeButton}
@@ -156,10 +236,40 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Notifications Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={notificationsModalVisible}
+        onRequestClose={() => setNotificationsModalVisible(false)} // Close the modal on request
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>Notifications</ThemedText>
+
+            {/* Notifications List */}
+            <FlatList
+              data={notifications}
+              renderItem={({ item }) => <NotificationItem item={item} />}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.notificationsList}
+            />
+
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setNotificationsModalVisible(false)} // Close modal
+            >
+              <ThemedText style={styles.closeButtonText}>Close</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -175,16 +285,29 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // This will push items to the edges
+    paddingHorizontal: 16, // Ensure spacing is consistent
+  },
+  headerTitleContainer: {
+    alignItems: 'center', // Center the text horizontally
   },
   headerTitle: {
-    color: '#3D95CE',
+    color: '#4CAF50', // Green color code
     fontSize: 20,
+  },
+  headerSubtitle: {
+    color: '#666666',
+    fontSize: 14,
+    marginTop: 2,
   },
   profilePic: {
     height: 36,
     width: 36,
     borderRadius: 18,
+  },
+  bellIcon: {
+    height: 24,
+    width: 24,
   },
   balanceCard: {
     backgroundColor: '#FFFFFF',
@@ -211,7 +334,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   seeAllText: {
-    color: '#3D95CE',
+    color: '#4CAF50', // Green color code
   },
   transactionItem: {
     flexDirection: 'row',
@@ -224,7 +347,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50', // Green color code
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -239,6 +362,7 @@ const styles = StyleSheet.create({
   transactionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   timeText: {
     fontSize: 12,
@@ -253,7 +377,7 @@ const styles = StyleSheet.create({
     bottom: 24,
     width: 60,
     height: 60,
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50', // Green color code
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
@@ -268,7 +392,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Overlay background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: 'white',
@@ -290,7 +414,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
   },
   submitButton: {
-    backgroundColor: '#3D95CE',
+    backgroundColor: '#4CAF50', // Green color code
     paddingVertical: 12,
     borderRadius: 5,
     alignItems: 'center',
@@ -309,5 +433,22 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  dateInput: {
+    height: 40,
+    borderColor: '#cccccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 20,
+    paddingLeft: 10,
+    justifyContent: 'center',
+  },
+  notificationItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  notificationsList: {
+    paddingBottom: 20,
   },
 });
