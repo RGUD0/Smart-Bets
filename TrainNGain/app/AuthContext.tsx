@@ -214,6 +214,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     }
   };
+  
 
   // Log auth state changes
   useEffect(() => {

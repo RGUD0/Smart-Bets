@@ -7,9 +7,11 @@ import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../AuthContext'; // <-- ADJUST import path to your project structure
+import { useNavigation } from '@react-navigation/native';
 
 export default function ProfileScreen() {
-  const { authFetch } = useAuth(); // <-- Pull in authFetch here
+  const { authFetch, logout } = useAuth();
+  const navigation = useNavigation();
   const [userData, setUserData] = useState({
     balance: null,
     email: null,
@@ -17,6 +19,20 @@ export default function ProfileScreen() {
     bio: null,
   });
   const [loading, setLoading] = useState(true);
+
+  // Handle logout and navigation
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigate to Login screen after successful logout
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -57,8 +73,8 @@ export default function ProfileScreen() {
           <ThemedText type="title" style={styles.headerTitle}>
             Profile
           </ThemedText>
-          <TouchableOpacity>
-            <Ionicons name="settings-outline" size={24} color="#3D95CE" />
+          <TouchableOpacity onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color="#3D95CE" />
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
@@ -126,7 +142,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </ThemedView>
 
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <ThemedText style={styles.logoutText}>Log Out</ThemedText>
           </TouchableOpacity>
         </>
