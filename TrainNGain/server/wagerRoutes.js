@@ -66,7 +66,7 @@ function setupWagerRoutes(server, db) {
                 // Generate a unique ID for the wager
                 const wager_id = 'wager_' + Date.now();
                 const save_time = new Date().toISOString().replace('T', ' ').substring(0, 19);
-                const status = 'pending';
+                const status = 'incoming';
                 
                 // Insert new wager
                 db.run(
@@ -186,6 +186,48 @@ function setupWagerRoutes(server, db) {
       applyAuth(req, res);
       return;
     }
+    // Get incoming wagers for a user (wagers where user is the receiver)
+// Get incoming wagers for a user (wagers where user is the receiver)
+else if (req.url === '/api/wagers/incoming' && req.method === 'GET') {
+    const applyAuth = (req, res) => {
+      verifyToken(req, res, () => {
+        const userId = req.user.id;
+        
+        db.all(
+          `SELECT w.wager_id, 
+                 w.creator_id, 
+                 c.username as creator_username, 
+                 w.receiver_id, 
+                 r.username as receiver_username,
+                 w.wager_description,
+                 w.wager_amount,
+                 w.expiration_time,
+                 w.save_time,
+                 w.status
+           FROM wagers w
+           JOIN balances c ON w.creator_id = c.id
+           JOIN balances r ON w.receiver_id = r.id
+           WHERE w.receiver_id = ? 
+           AND w.status = 'incoming' 
+           ORDER BY w.save_time DESC`,
+          [userId],
+          (err, rows) => {
+            if (err) {
+              console.error('Database error:', err.message);
+              res.writeHead(500);
+              return res.end(JSON.stringify({ message: 'Database error' }));
+            }
+            
+            res.writeHead(200);
+            res.end(JSON.stringify({ wagers: rows }));
+          }
+        );
+      });
+    };
+    
+    applyAuth(req, res);
+    return;
+  }
     
     // Update wager status (accept/reject)
     else if (req.url === '/api/wagers/respond' && req.method === 'PUT') {

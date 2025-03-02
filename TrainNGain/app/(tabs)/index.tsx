@@ -23,13 +23,6 @@ interface Wager {
   status: string;
 }
 
-// Notification data
-const notifications = [
-  { id: '1', message: 'Alex Kim promised you 10 points for completing the Seattle 5k!', time: '2h ago' },
-  { id: '2', message: 'Your promise to Taylor Swift has been fulfilled!', time: '5h ago' },
-  { id: '3', message: 'Morgan Lee fulfilled a promise to Gerald!', time: '1d ago' },
-];
-
 // Wager Item Component
 const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string }) => {
   // Calculate relative time (e.g., "2h ago")
@@ -78,21 +71,41 @@ const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string
   );
 };
 
-// Notification Item Component
-const NotificationItem = ({ item }) => (
-  <ThemedView style={styles.notificationItem}>
-    <ThemedText>{item.message}</ThemedText>
-    <ThemedText style={styles.timeText}>{item.time}</ThemedText>
-  </ThemedView>
-);
+// Incoming Wager Notification Item Component
+const IncomingWagerItem = ({ item }: { item: Wager }) => {
+  // Calculate relative time
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const pastDate = new Date(dateString);
+    const timeDiff = now.getTime() - pastDate.getTime();
+    
+    const seconds = Math.floor(timeDiff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+  };
 
+  return (
+    <ThemedView style={styles.notificationItem}>
+      <ThemedText>{`${item.creator_username || item.creator_id} promised you ${item.wager_amount} points for: ${item.wager_description}`}</ThemedText>
+      <ThemedText style={styles.timeText}>{getRelativeTime(item.save_time)}</ThemedText>
+    </ThemedView>
+  );
+};
 
 export default function HomeScreen() {
   const { authFetch, user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
   const [pendingWagers, setPendingWagers] = useState<Wager[]>([]);
+  const [incomingWagers, setIncomingWagers] = useState<Wager[]>([]);
   const [loading, setLoading] = useState(true);
   const [wagersLoading, setWagersLoading] = useState(true);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
   const [wagerDetails, setWagerDetails] = useState({
@@ -182,76 +195,111 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchPendingWagers();
   }, []);
+
+  // Fetch incoming wagers for notifications
+  const fetchIncomingWagers = async () => {
+    try {
+      setNotificationsLoading(true);
+      const data = await authFetch('/api/wagers/incoming');
+      console.log('Fetched incoming wagers for notifications:', data);
+      if (data && Array.isArray(data.wagers)) {
+        setIncomingWagers(data.wagers);
+      } else {
+        // Ensure we have an empty array if no wagers are returned
+        setIncomingWagers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching incoming wagers:', error);
+      // Set empty array on error to avoid loading state
+      setIncomingWagers([]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  // Fetch incoming wagers when notification modal opens
+  useEffect(() => {
+    if (notificationsModalVisible) {
+      fetchIncomingWagers();
+    }
+  }, [notificationsModalVisible]);
+
+  useEffect(() => {
+    fetchIncomingWagers();
+  }, []);
+
   // Add these handler functions for wagers
-const handleAcceptWager = async (wagerId: string) => {
-  try {
-    const response = await authFetch('/api/wagers/respond', {
-      method: 'PUT',
-      body: JSON.stringify({
-        wager_id: wagerId,
-        action: 'accept'
-      })
-    });
-    
-    console.log('Wager accepted:', response);
-    
-    // Refresh wagers and balance
-    fetchPendingWagers();
-    fetchBalance();
-  } catch (error) {
-    console.error('Error accepting wager:', error);
-  }
-};
+  const handleAcceptWager = async (wagerId: string) => {
+    try {
+      const response = await authFetch('/api/wagers/respond', {
+        method: 'PUT',
+        body: JSON.stringify({
+          wager_id: wagerId,
+          action: 'accept'
+        })
+      });
+      
+      console.log('Wager accepted:', response);
+      
+      // Refresh wagers and balance
+      fetchPendingWagers();
+      fetchIncomingWagers();
+      fetchBalance();
+    } catch (error) {
+      console.error('Error accepting wager:', error);
+    }
+  };
 
+  const handleRejectWager = async (wagerId: string) => {
+    try {
+      const response = await authFetch('/api/wagers/respond', {
+        method: 'PUT',
+        body: JSON.stringify({
+          wager_id: wagerId,
+          action: 'reject'
+        })
+      });
+      
+      console.log('Wager rejected:', response);
+      
+      // Refresh wagers and balance
+      fetchPendingWagers();
+      fetchIncomingWagers();
+      fetchBalance();
+    } catch (error) {
+      console.error('Error rejecting wager:', error);
+    }
+  };
 
-const handleRejectWager = async (wagerId: string) => {
-  try {
-    const response = await authFetch('/api/wagers/respond', {
-      method: 'PUT',
-      body: JSON.stringify({
-        wager_id: wagerId,
-        action: 'reject'
-      })
-    });
-    
-    console.log('Wager rejected:', response);
-    
-    // Refresh wagers and balance
-    fetchPendingWagers();
-    fetchBalance();
-  } catch (error) {
-    console.error('Error rejecting wager:', error);
-  }
-};
+  const handleResolveWager = async (wagerId: string, winnerId: string) => {
+    try {
+      const response = await authFetch('/api/wagers/resolve', {
+        method: 'PUT',
+        body: JSON.stringify({
+          wager_id: wagerId,
+          winner_id: winnerId
+        })
+      });
+      
+      console.log('Wager resolved:', response);
+      
+      // Refresh wagers and balance
+      fetchPendingWagers();
+      fetchIncomingWagers();
+      fetchBalance();
+    } catch (error) {
+      console.error('Error resolving wager:', error);
+    }
+  };
 
-const handleResolveWager = async (wagerId: string, winnerId: string) => {
-  try {
-    const response = await authFetch('/api/wagers/resolve', {
-      method: 'PUT',
-      body: JSON.stringify({
-        wager_id: wagerId,
-        winner_id: winnerId
-      })
-    });
-    
-    console.log('Wager resolved:', response);
-    
-    // Refresh wagers and balance
-    fetchPendingWagers();
-    fetchBalance();
-  } catch (error) {
-    console.error('Error resolving wager:', error);
-  }
-};
+  // Add this function to open the resolve modal
+  const [resolveModalVisible, setResolveModalVisible] = useState(false);
+  const [selectedWager, setSelectedWager] = useState<Wager | null>(null);
 
-// Add this function to open the resolve modal
-const [resolveModalVisible, setResolveModalVisible] = useState(false);
-const [selectedWager, setSelectedWager] = useState<Wager | null>(null);
-
-const openResolveModal = (wager: Wager) => {
-  setSelectedWager(wager);
-  setResolveModalVisible(true);
-};
+  const openResolveModal = (wager: Wager) => {
+    setSelectedWager(wager);
+    setResolveModalVisible(true);
+  };
 
   // Function to fetch balance
   const fetchBalance = async () => {
@@ -535,7 +583,7 @@ const openResolveModal = (wager: Wager) => {
         </View>
       </Modal>
 
-      {/* Notifications Modal */}
+      {/* Notifications Modal with Incoming Wagers */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -546,14 +594,26 @@ const openResolveModal = (wager: Wager) => {
           <View style={styles.modalContent}>
             <ThemedText style={styles.modalTitle}>Notifications</ThemedText>
 
-            {/* Notifications List */}
-            <FlatList
-              data={notifications}
-              renderItem={({ item }) => <NotificationItem item={item} />}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.notificationsList}
-            />
+            {/* Incoming Wagers as Notifications */}
+            {notificationsLoading ? (
+              <ActivityIndicator size="large" color="#4CAF50" style={styles.loadingIndicator} />
+            ) : (
+              <>
+                {incomingWagers.length > 0 ? (
+                  <FlatList
+                    data={incomingWagers}
+                    renderItem={({ item }) => <IncomingWagerItem item={item} />}
+                    keyExtractor={(item) => item.wager_id}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.notificationsList}
+                  />
+                ) : (
+                  <ThemedView style={styles.noWagersContainer}>
+                    <ThemedText style={styles.noWagersText}>No new notifications</ThemedText>
+                  </ThemedView>
+                )}
+              </>
+            )}
 
             {/* Close Button */}
             <TouchableOpacity
