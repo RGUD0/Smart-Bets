@@ -1,259 +1,202 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Ionicons } from '@expo/vector-icons';
 
-// Mock friends data
-const friends = [
-  { id: '1', name: 'Alex Kim', username: '@alexkim', isFollowing: true, points: '20',},
-  { id: '2', name: 'Taylor Swift', username: '@taylorswift', isFollowing: true, points: '10'},
-  { id: '3', name: 'Morgan Lee', username: '@morganlee', isFollowing: false, points: '15' },
-  { id: '4', name: 'Jordan Bell', username: '@jordanbell', isFollowing: true, points: '10'},
-  { id: '5', name: 'Pat Johnson', username: '@patjohnson', isFollowing: true, points: '20'},
-];
+import React, { useState, useEffect } from 'react';
 
-export default function FriendsScreen() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-
-      {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedView style={styles.headerContent}>
-          <TouchableOpacity>
-            <Image
-              source={require('@/assets/images/partial-react-logo.png')}
-              style={styles.profilePic}
-            />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>Friends</ThemedText>
-          <TouchableOpacity>
-            <Ionicons name="search" size={24} color="#3D95CE" />
-          </TouchableOpacity>
-        </ThemedView>
-      </ThemedView>
-
-      {/* Friend Suggestions Card */}
-      <ThemedView style={styles.card}>
-        <ThemedText type="defaultSemiBold">Friend Suggestions</ThemedText>
-        <ThemedText style={styles.subtitle}>Find people you may know</ThemedText>
-        
-        <ThemedView style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.primaryButton}>
-            <Ionicons name="person-add-outline" size={20} color="white" />
-            <ThemedText style={styles.primaryButtonText}>Find Friends</ThemedText>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Ionicons name="share-social-outline" size={20} color="#3D95CE" />
-            <ThemedText style={styles.secondaryButtonText}>Invite</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
-      </ThemedView>
-
-      {/* Friends List */}
-      <ThemedView style={styles.listContainer}>
-        <ThemedView style={styles.listHeader}>
-          <ThemedText type="subtitle">Your Friends</ThemedText>
-          <TouchableOpacity>
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
-
-        <FlatList
-          data={friends}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ThemedView style={styles.friendItem}>
-              <ThemedView style={styles.avatar}>
-                <ThemedText style={styles.avatarText}>{item.name.charAt(0)}</ThemedText>
-              </ThemedView>
-              
-              <ThemedView style={styles.friendInfo}>
-                <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
-                <ThemedText style={styles.username}>{item.username}</ThemedText>
-              </ThemedView>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.followButton, 
-                  item.isFollowing ? styles.followingButton : {}
-                ]}
-              >
-                <ThemedText style={[
-                  styles.followButtonText,
-                  item.isFollowing ? styles.followingButtonText : {}
-                ]}>
-                  {item.isFollowing ? 'Following' : 'Follow'}
-                </ThemedText>
-              </TouchableOpacity>
-            </ThemedView>
-          )}
-        />
-      </ThemedView>
-
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="person-add" size={28} color="white" />
-      </TouchableOpacity>
-    </SafeAreaView>
-  );
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  bio: string;
+  balance: number;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F7F7',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    color: '#3D95CE',
-    fontSize: 20,
-  },
-  profilePic: {
-    height: 36,
-    width: 36,
-    borderRadius: 18,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  subtitle: {
-    color: '#999999',
-    fontSize: 14,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  primaryButton: {
-    backgroundColor: '#3D95CE',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    gap: 8,
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#3D95CE',
-    gap: 8,
-  },
-  secondaryButtonText: {
-    color: '#3D95CE',
-    fontWeight: '600',
-  },
-  listContainer: {
-    flex: 1,
-    marginHorizontal: 16,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  seeAllText: {
-    color: '#3D95CE',
-  },
-  friendItem: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3D95CE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  friendInfo: {
-    flex: 1,
-  },
-  username: {
-    fontSize: 14,
-    color: '#999999',
-  },
-  followButton: {
-    backgroundColor: '#3D95CE',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-  },
-  followButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#3D95CE',
-  },
-  followingButtonText: {
-    color: '#3D95CE',
-  },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 24,
-    backgroundColor: '#3D95CE',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-});
+const UserList: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch('http://localhost:5001/api/users/all');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const fetchedUsers = data.users || [];
+        setUsers(fetchedUsers);
+        setFilteredUsers(fetchedUsers);
+      } catch (err) {
+        setError('Failed to fetch users: ' + (err instanceof Error ? err.message : String(err)));
+        console.error('Error fetching users:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllUsers();
+  }, []);
+
+  useEffect(() => {
+    const filtered = users.filter(user => 
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.bio.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [searchQuery, users]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleAddFriend = async (userId: string) => {
+    console.log(`Adding friend: ${userId}`);
+  
+    try {
+      const response = await fetch('http://localhost:5000/addFriend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUserId,  // assuming `currentUserId` is the logged-in user's ID
+          friendId: userId,
+        }),
+      });
+  
+      if (response.ok) {
+        console.log('Friend added successfully');
+      } else {
+        console.error('Failed to add friend');
+      }
+    } catch (error) {
+      console.error('Error adding friend:', error);
+    }
+  };
+  
+
+  return (
+    <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ background: '#0074de', color: 'white', padding: '16px', borderRadius: '0 0 8px 8px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>People</h1>
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            placeholder="Search by name, username, or email"
+            style={{
+              width: '100%',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              border: 'none',
+              backgroundColor: '#ffffff',
+              color: '#333333'
+            }}
+            value={searchQuery}
+            onChange={handleSearch}
+          />
+        </div>
+      </div>
+      
+      <div style={{ padding: '16px' }}>
+        {isLoading && <p style={{ textAlign: 'center', padding: '16px' }}>Loading users...</p>}
+        {error && <p style={{ color: 'red', textAlign: 'center', padding: '16px' }}>{error}</p>}
+        
+        {!isLoading && !error && (
+          <>
+            <p style={{ color: '#666666', fontSize: '14px', marginBottom: '8px' }}>
+              {filteredUsers.length} {filteredUsers.length === 1 ? 'person' : 'people'}
+            </p>
+            
+            <div>
+              {filteredUsers.map(user => (
+                <div 
+                  key={user.id} 
+                  style={{ 
+                    padding: '12px 0', 
+                    borderBottom: '1px solid #eeeeee',
+                    display: 'flex', 
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ 
+                      height: '48px', 
+                      width: '48px', 
+                      borderRadius: '50%', 
+                      backgroundColor: '#e6f2ff', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#0074de',
+                      fontWeight: 'bold',
+                      fontSize: '20px',
+                      marginRight: '12px'
+                    }}>
+                      {user.username.charAt(0).toUpperCase()}
+                    </div>
+                    
+                    <div style={{ flexGrow: 1 }}>
+                      <h2 style={{ fontWeight: '500', margin: 0 }}>{user.username}</h2>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#666666', 
+                        margin: '4px 0 0 0',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '300px'
+                      }}>
+                        {user.bio || user.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ 
+                      fontWeight: '500', 
+                      color: user.balance >= 0 ? '#00c853' : '#f44336',
+                      marginRight: '12px'
+                    }}>
+                      ${Math.abs(user.balance).toFixed(2)}
+                    </span>
+                    <button 
+                      onClick={() => handleAddFriend(user.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        backgroundColor: '#0074de',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'background 0.3s'
+                      }}
+                    >
+                      Add Friend
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {filteredUsers.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#666666' }}>
+                <p>No users match your search.</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default UserList;
