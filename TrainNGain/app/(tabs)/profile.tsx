@@ -6,46 +6,46 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '../AuthContext'; // <-- ADJUST import path to your project structure
 
 export default function ProfileScreen() {
+  const { authFetch } = useAuth(); // <-- Pull in authFetch here
   const [userData, setUserData] = useState({
     balance: null,
     email: null,
     username: null,
-    bio: null
+    bio: null,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Fetch complete user profile data from your API
-        const response = await fetch('http://localhost:5001/api/user/profile');
-        const data = await response.json();
-        
-        console.log("Fetched user data:", data); // Log for debugging
-        
+        // Use authFetch so we include Authorization: Bearer <token>
+        const data = await authFetch('/api/user/profile');
+        console.log('Fetched user data:', data);
+
         if (data && data.user) {
-          // Update all user data fields
           setUserData({
-            balance: data.user.balance || null,
-            email: data.user.email || 'user@example.com',
-            username: data.user.username || 'John Doe',
-            bio: data.user.bio || 'Hi there! I love building apps with React Native and exploring new technologies.'
+            balance: data.user.balance ?? null,
+            email: data.user.email ?? 'user@example.com',
+            username: data.user.username ?? 'John Doe',
+            bio:
+              data.user.bio ??
+              'Hi there! I love building apps with React Native and exploring new technologies.',
           });
         } else {
-          console.error("Invalid user data format:", data);
+          console.error('Invalid user data format:', data);
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
-        // Keep default values in case of error
+        console.error('Error fetching user data:', error);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchUserData();
-  }, []);
+  }, [authFetch]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,7 +54,9 @@ export default function ProfileScreen() {
       {/* Header */}
       <ThemedView style={styles.header}>
         <ThemedView style={styles.headerContent}>
-          <ThemedText type="title" style={styles.headerTitle}>Profile</ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Profile
+          </ThemedText>
           <TouchableOpacity>
             <Ionicons name="settings-outline" size={24} color="#3D95CE" />
           </TouchableOpacity>
@@ -71,9 +73,9 @@ export default function ProfileScreen() {
           {/* Profile Card */}
           <ThemedView style={styles.profileCard}>
             <ThemedView style={styles.profileHeader}>
-              <Image 
-                source={require('@/assets/images/partial-react-logo.png')} 
-                style={styles.profilePic} 
+              <Image
+                source={require('@/assets/images/partial-react-logo.png')}
+                style={styles.profilePic}
               />
               <ThemedView style={styles.profileInfo}>
                 <ThemedText type="title">{userData.username}</ThemedText>
@@ -85,7 +87,9 @@ export default function ProfileScreen() {
             {/* Balance Section */}
             <ThemedView style={styles.balanceSection}>
               <ThemedText type="defaultSemiBold">Current Balance</ThemedText>
-              <ThemedText type="title">{userData.balance ? `$${userData.balance}` : 'N/A'}</ThemedText>
+              <ThemedText type="title">
+                {userData.balance ? `$${userData.balance}` : 'N/A'}
+              </ThemedText>
             </ThemedView>
           </ThemedView>
 
@@ -96,32 +100,32 @@ export default function ProfileScreen() {
               <ThemedText style={styles.optionText}>Edit Profile</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="create-outline" size={24} color="#3D95CE" />
               <ThemedText style={styles.optionText}>Edit Bio</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="shield-checkmark-outline" size={24} color="#3D95CE" />
               <ThemedText style={styles.optionText}>Privacy & Security</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
               <ThemedText style={styles.optionText}>Notifications</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="help-circle-outline" size={24} color="#3D95CE" />
               <ThemedText style={styles.optionText}>Help & Support</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#999999" />
             </TouchableOpacity>
           </ThemedView>
-          
+
           <TouchableOpacity style={styles.logoutButton}>
             <ThemedText style={styles.logoutText}>Log Out</ThemedText>
           </TouchableOpacity>

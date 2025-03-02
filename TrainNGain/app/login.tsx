@@ -1,50 +1,39 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, Text, Image, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, Text, Image, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from './AuthContext';
 
-const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+export default function Login() {
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
+  const { login } = useAuth();
 
-  const handleLogin = () => {
+  const handleLogin = async (): Promise<void> => {
     console.log('handleLogin triggered', email, password);
     
-    // For testing purpose, accept any non-empty input
-    if (email.trim() && password.trim()) {
-      console.log('Login credentials accepted');
-      
-      // Try direct navigation first
-      try {
-        console.log('Attempting navigation to (tabs)');
-        router.replace('/(tabs)');
-        console.log('Navigation command executed');
-      } catch (error) {
-        console.error('Direct navigation failed:', error);
-        
-        // If direct navigation fails, show alert with navigation in callback
-        Alert.alert('Login Successful', 'Welcome back!', [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              console.log('Alert OK pressed, attempting navigation');
-              setTimeout(() => {
-                try {
-                  router.replace('/(tabs)');
-                } catch (navError) {
-                  console.error('Navigation after alert failed:', navError);
-                  // Last resort fallback
-                  router.navigate('/');
-                }
-              }, 100); // Small delay to ensure alert is dismissed
-            }
-          }
-        ]);
-      }
-    } else {
+    if (!email.trim() || !password.trim()) {
       Alert.alert('Login Failed', 'Please enter both email and password');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Call the login function from AuthContext
+      await login(email, password);
+      
+      // If login is successful, navigate to tabs
+      console.log('Login successful, navigating to tabs');
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      // Error is already handled in the login function (Alert is shown)
+      console.log('Login failed:', error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,6 +59,7 @@ const Login = () => {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!isLoading}
           />
         </View>
 
@@ -83,34 +73,38 @@ const Login = () => {
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            editable={!isLoading}
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} disabled={isLoading}>
             <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#888" />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
-          style={styles.loginButton} 
+          style={[styles.loginButton, isLoading && styles.disabledButton]} 
           onPress={handleLogin}
           activeOpacity={0.7}
+          disabled={isLoading}
         >
-          <Text style={styles.loginButtonText}>Login</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.loginButtonText}>Login</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-        </TouchableOpacity>
+        {/* Forgot Password button removed to avoid navigation error */}
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('/signup')}>
+        <TouchableOpacity onPress={() => router.push('signup')} disabled={isLoading}>
           <Text style={styles.signUpText}>Sign Up</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -169,6 +163,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
+  disabledButton: {
+    backgroundColor: '#9DC5E0',
+  },
   loginButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -192,5 +189,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-export default Login;

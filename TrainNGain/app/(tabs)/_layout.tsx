@@ -7,13 +7,22 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../AuthContext'; // Import the auth context
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { isAuthenticated, loading } = useAuth(); // Use the auth context
+  
+  console.log("Auth state in TabLayout:", { isAuthenticated, loading });
+  
+  // If still loading auth state, show nothing
+  if (loading) {
+    return null; // Or a loading indicator
+  }
 
-  const user = true;  
-  if (!user) {
+  // Check if user is authenticated
+  if (!isAuthenticated) {
+    console.log("Redirecting to login");
     return <Redirect href="/login" />;
   }
 
@@ -51,8 +60,6 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
-          // Alternative if IconSymbol doesn't have person.fill:
-          // tabBarIcon: ({ color }) => <Ionicons name="person" size={28} color={color} />,
         }}
       />
     </Tabs>

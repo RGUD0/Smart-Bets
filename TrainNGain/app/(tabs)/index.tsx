@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '../AuthContext'; // <-- Adjust this import path if needed
 
 // Mock transaction data
 const transactions = [
@@ -38,34 +39,33 @@ const TransactionItem = ({ item }) => (
 );
 
 export default function HomeScreen() {
+  const { authFetch } = useAuth(); // <-- Access authFetch from context
   const [balance, setBalance] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/balance'); // Ensure this matches backend
-        const data = await response.json();
-        
-        console.log("Fetched balance:", data); // Log response data
-        if (data && typeof data.balance === "number") {
-          setBalance(data.balance); // Ensure we're setting the balance
+        // Use authFetch with a relative path so it includes the Authorization header
+        const data = await authFetch('/api/balance');
+
+        console.log('Fetched balance:', data);
+        if (data && typeof data.balance === 'number') {
+          setBalance(data.balance);
         } else {
-          console.error("Invalid balance format:", data);
-          setBalance(null); // Handle incorrect format
+          console.error('Invalid balance format:', data);
+          setBalance(null);
         }
       } catch (error) {
-        console.error("Error fetching balance:", error);
-        setBalance(null); // Ensure error handling doesn't break the UI
+        console.error('Error fetching balance:', error);
+        setBalance(null);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchBalance();
-  }, []);
-  
-  
+  }, [authFetch]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,9 +75,9 @@ export default function HomeScreen() {
       <ThemedView style={styles.header}>
         <ThemedView style={styles.headerContent}>
           <TouchableOpacity>
-            <Image 
-              source={require('@/assets/images/partial-react-logo.png')} 
-              style={styles.profilePic} 
+            <Image
+              source={require('@/assets/images/partial-react-logo.png')}
+              style={styles.profilePic}
             />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.headerTitle}>Venmo</ThemedText>
@@ -119,7 +119,7 @@ export default function HomeScreen() {
         <FlatList
           data={transactions}
           renderItem={({ item }) => <TransactionItem item={item} />}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.transactionsList}
         />
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   transactionsList: {
-    paddingBottom: 80, // Give space for floating action button
+    paddingBottom: 80, // Give space for the floating action button
   },
   transactionsHeader: {
     flexDirection: 'row',
