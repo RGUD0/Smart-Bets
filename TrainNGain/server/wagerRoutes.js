@@ -145,6 +145,48 @@ function setupWagerRoutes(server, db) {
       return;
     }
     
+    // Get pending wagers for a user (both sent and received)
+    else if (req.url === '/api/wagers/pending' && req.method === 'GET') {
+      const applyAuth = (req, res) => {
+        verifyToken(req, res, () => {
+          const userId = req.user.id;
+          
+          db.all(
+            `SELECT w.wager_id, 
+                   w.creator_id, 
+                   c.username as creator_username, 
+                   w.receiver_id, 
+                   r.username as receiver_username,
+                   w.wager_description,
+                   w.wager_amount,
+                   w.expiration_time,
+                   w.save_time,
+                   w.status
+             FROM wagers w
+             JOIN balances c ON w.creator_id = c.id
+             JOIN balances r ON w.receiver_id = r.id
+             WHERE (w.creator_id = ? OR w.receiver_id = ?) 
+             AND w.status = 'pending' 
+             ORDER BY w.save_time DESC`,
+            [userId, userId],
+            (err, rows) => {
+              if (err) {
+                console.error('Database error:', err.message);
+                res.writeHead(500);
+                return res.end(JSON.stringify({ message: 'Database error' }));
+              }
+              
+              res.writeHead(200);
+              res.end(JSON.stringify({ wagers: rows }));
+            }
+          );
+        });
+      };
+      
+      applyAuth(req, res);
+      return;
+    }
+    
     // Update wager status (accept/reject)
     else if (req.url === '/api/wagers/respond' && req.method === 'PUT') {
       const applyAuth = (req, res) => {

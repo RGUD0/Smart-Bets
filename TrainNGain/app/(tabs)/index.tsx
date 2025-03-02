@@ -6,65 +6,179 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useAuth } from '../AuthContext'; // <-- Adjust this import path if needed
+import { useAuth } from '../AuthContext';
 
-// transaction data
-const transactions = [
-  { id: '1', user: 'Alex Kim', action: 'promised', target: 'You', amount: '10 points', description: 'Completing Seattle 5k', time: '2h ago' },
-  { id: '2', user: 'You', action: 'promised', target: 'Taylor Swift', amount: '5 points', description: 'Finishing homework by Thursday 12am', time: '5h ago' },
-  { id: '3', user: 'Morgan Lee', action: 'fulfilled promise to', target: 'Gerald', amount: '+12 points', description: 'Morning run', time: '1d ago' },
-  { id: '4', user: 'Jordan Bell', action: 'has a timed-out promise to', target: 'You', amount: '-20 points', description: 'Mile Run', time: '2d ago' },
-  { id: '5', user: 'You', action: 'have a timed-out promise to', target: 'Morgan Lee', amount: '-15 points', description: 'Doing stats homework', time: '3d ago' },
-  { id: '6', user: 'Riley Chen', action: 'promised', target: 'You', amount: '5 points', description: 'Morning yoga', time: '4d ago' },
-  { id: '7', user: 'You', action: 'promised', target: 'Sam Adams', amount: '10 points', description: 'Going to career fair', time: '5d ago' },
-];
+// Define the wager type
+interface Wager {
+  wager_id: string;
+  creator_id: string;
+  creator_username?: string;
+  receiver_id: string;
+  receiver_username?: string;
+  wager_description: string;
+  wager_amount: number;
+  expiration_time: string;
+  save_time: string;
+  status: string;
+}
 
-// Transaction Item Component
-const TransactionItem = ({ item }) => (
-  <ThemedView style={styles.transactionItem}>
-    <ThemedView style={styles.avatarContainer}>
-      <ThemedText style={styles.avatarText}>{item.user.charAt(0)}</ThemedText>
-    </ThemedView>
-    <ThemedView style={styles.transactionContent}>
-      <ThemedView style={styles.transactionHeader}>
-        <ThemedText type="defaultSemiBold">
-          {item.user} {item.action} {item.target}
-        </ThemedText>
-        <ThemedText style={styles.timeText}>{item.time}</ThemedText>
+// Wager Item Component
+const WagerItem = ({ item, currentUserId }: { item: Wager; currentUserId: string }) => {
+  // Calculate relative time (e.g., "2h ago")
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const pastDate = new Date(dateString);
+    const timeDiff = now.getTime() - pastDate.getTime();
+    
+    const seconds = Math.floor(timeDiff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+  };
+  
+  // Determine if user is creator or receiver
+  const isCreator = item.creator_id === currentUserId;
+  const otherParty = isCreator ? 'You wagered with' : 'Wagered with you by';
+  
+  // Use username if available, otherwise fallback to ID
+  const otherPartyName = isCreator 
+    ? (item.receiver_username || item.receiver_id) 
+    : (item.creator_username || item.creator_id);
+  
+  return (
+    <ThemedView style={styles.wagerItem}>
+      <ThemedView style={styles.avatarContainer}>
+        <ThemedText style={styles.avatarText}>{otherPartyName.charAt(0).toUpperCase()}</ThemedText>
       </ThemedView>
-      <ThemedText>{item.description}</ThemedText>
+      <ThemedView style={styles.wagerContent}>
+        <ThemedView style={styles.wagerHeader}>
+          <ThemedText type="defaultSemiBold">
+            {otherParty} {otherPartyName}
+          </ThemedText>
+          <ThemedText style={styles.timeText}>{getRelativeTime(item.save_time)}</ThemedText>
+        </ThemedView>
+        <ThemedText>{item.wager_description}</ThemedText>
+        <ThemedText style={styles.statusText}>Status: {item.status}</ThemedText>
+      </ThemedView>
+      <ThemedText style={styles.amountText}>{item.wager_amount} points</ThemedText>
     </ThemedView>
-    <ThemedText style={styles.amountText}>{item.amount}</ThemedText>
-  </ThemedView>
-);
+  );
+};
 
 export default function HomeScreen() {
-  const { authFetch } = useAuth(); // <-- Access authFetch from context
-  const [balance, setBalance] = useState<number | string | null>(null);
+  const { authFetch, user } = useAuth();
+  const [balance, setBalance] = useState<number | null>(null);
+  const [pendingWagers, setPendingWagers] = useState<Wager[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
-  const [betDetails, setBetDetails] = useState(""); // State to capture bet details
+  const [wagersLoading, setWagersLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [wagerDetails, setWagerDetails] = useState({
+    receiverId: "",
+    description: "",
+    amount: "",
+    expirationTime: ""
+  });
 
+  // Fetch user balance
   useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const data = await authFetch('/api/balance');
-        console.log('Fetched balance:', data);
-        if (data && typeof data.balance === 'number') {
-          setBalance(data.balance);
-        } else {
-          setBalance(null);
-        }
-      } catch (error) {
-        console.error('Error fetching balance:', error);
-        setBalance(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBalance();
-  }, [authFetch]);
+  }, []);
+
+  // Fetch pending wagers
+  useEffect(() => {
+    fetchPendingWagers();
+  }, []);
+
+  // Function to fetch balance
+  const fetchBalance = async () => {
+    try {
+      const data = await authFetch('/api/balance');
+      console.log('Fetched balance:', data);
+      if (data && typeof data.balance === 'number') {
+        setBalance(data.balance);
+      } else {
+        setBalance(null);
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      setBalance(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to fetch pending wagers
+  const fetchPendingWagers = async () => {
+    try {
+      setWagersLoading(true);
+      const data = await authFetch('/api/wagers/pending');
+      console.log('Fetched pending wagers:', data);
+      if (data && Array.isArray(data.wagers)) {
+        setPendingWagers(data.wagers);
+      } else {
+        // Ensure we have an empty array if no wagers are returned
+        setPendingWagers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching pending wagers:', error);
+      // Set empty array on error to avoid loading state
+      setPendingWagers([]);
+    } finally {
+      setWagersLoading(false);
+    }
+  };
+
+  // Handle creating a new wager
+  const handleCreateWager = async () => {
+    if (!wagerDetails.receiverId || !wagerDetails.description || !wagerDetails.amount) {
+      console.error('Please fill all required fields');
+      return;
+    }
+
+    try {
+      const amount = parseInt(wagerDetails.amount);
+      if (isNaN(amount) || amount <= 0) {
+        console.error('Please enter a valid amount');
+        return;
+      }
+
+      // Set default expiration time to 7 days from now if not provided
+      const expirationTime = wagerDetails.expirationTime || 
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').substr(0, 19);
+
+      const response = await authFetch('/api/wagers/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          receiver_id: wagerDetails.receiverId,
+          wager_description: wagerDetails.description,
+          wager_amount: amount,
+          expiration_time: expirationTime
+        })
+      });
+
+      console.log('Wager created:', response);
+      
+      // Reset form and close modal
+      setWagerDetails({
+        receiverId: "",
+        description: "",
+        amount: "",
+        expirationTime: ""
+      });
+      setModalVisible(false);
+      
+      // Refresh wagers and balance
+      fetchPendingWagers();
+      fetchBalance();
+    } catch (error) {
+      console.error('Error creating wager:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,7 +193,7 @@ export default function HomeScreen() {
               style={styles.profilePic}
             />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>Venmo</ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>BetBuddy</ThemedText>
           <TouchableOpacity>
             <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
           </TouchableOpacity>
@@ -92,64 +206,94 @@ export default function HomeScreen() {
         {loading ? (
           <ActivityIndicator size="small" color="#3D95CE" />
         ) : (
-          <ThemedText type="title">{balance ? `${balance} points` : 'N/A'}</ThemedText>
+          <ThemedText type="title">{balance !== null ? `${balance} points` : 'N/A'}</ThemedText>
         )}
       </ThemedView>
 
-      {/* Transactions Feed */}
-      <ThemedView style={styles.transactionsContainer}>
-        <ThemedView style={styles.transactionsHeader}>
-          <ThemedText type="subtitle">Recent Activity</ThemedText>
+      {/* Pending Wagers */}
+      <ThemedView style={styles.wagersContainer}>
+        <ThemedView style={styles.wagersHeader}>
+          <ThemedText type="subtitle">Pending Wagers</ThemedText>
           <TouchableOpacity>
             <ThemedText style={styles.seeAllText}>See All</ThemedText>
           </TouchableOpacity>
         </ThemedView>
 
-        <FlatList
-          data={transactions}
-          renderItem={({ item }) => <TransactionItem item={item} />}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.transactionsList}
-        />
+        {wagersLoading ? (
+          <ActivityIndicator size="large" color="#3D95CE" style={styles.loadingIndicator} />
+        ) : (
+          <>
+            {pendingWagers.length > 0 ? (
+              <FlatList
+                data={pendingWagers}
+                renderItem={({ item }) => <WagerItem item={item} currentUserId={user?.id || ''} />}
+                keyExtractor={(item) => item.wager_id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.wagersList}
+              />
+            ) : (
+              <ThemedView style={styles.noWagersContainer}>
+                <ThemedText style={styles.noWagersText}>No pending wagers</ThemedText>
+              </ThemedView>
+            )}
+          </>
+        )}
       </ThemedView>
 
       {/* Floating Action Button with Plus Sign */}
       <TouchableOpacity
         style={styles.floatingActionButton}
-        onPress={() => setModalVisible(true)} // Show the modal when button is pressed
+        onPress={() => setModalVisible(true)}
       >
         <ThemedText style={styles.plusButton}>+</ThemedText>
       </TouchableOpacity>
 
-      {/* Modal */}
+      {/* Create Wager Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)} // Close the modal on request
+        onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Enter Bet Details</ThemedText>
+            <ThemedText style={styles.modalTitle}>Create New Wager</ThemedText>
+            
+            <ThemedText>Receiver ID</ThemedText>
             <TextInput
-              style={styles.textInput} // Use the style here
-              placeholder="Bet Details"
-              value={betDetails}
-              onChangeText={setBetDetails}
+              style={styles.textInput}
+              placeholder="User ID of receiver"
+              value={wagerDetails.receiverId}
+              onChangeText={(text) => setWagerDetails({...wagerDetails, receiverId: text})}
             />
+            
+            <ThemedText>Description</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              placeholder="What's the wager about?"
+              value={wagerDetails.description}
+              onChangeText={(text) => setWagerDetails({...wagerDetails, description: text})}
+            />
+            
+            <ThemedText>Amount (points)</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Amount to wager"
+              keyboardType="numeric"
+              value={wagerDetails.amount}
+              onChangeText={(text) => setWagerDetails({...wagerDetails, amount: text})}
+            />
+            
             <TouchableOpacity
               style={styles.submitButton}
-              onPress={() => {
-                console.log("Bet Details: ", betDetails);
-                setModalVisible(false); // Close modal after submitting
-              }}
+              onPress={handleCreateWager}
             >
-              <ThemedText style={styles.submitButtonText}>Submit Bet</ThemedText>
+              <ThemedText style={styles.submitButtonText}>Create Wager</ThemedText>
             </TouchableOpacity>
+            
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => setModalVisible(false)} // Close modal without submitting
+              onPress={() => setModalVisible(false)}
             >
               <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
@@ -197,14 +341,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  transactionsContainer: {
+  wagersContainer: {
     flex: 1,
     marginHorizontal: 16,
   },
-  transactionsList: {
-    paddingBottom: 80, // Give space for the floating action button
+  wagersList: {
+    paddingBottom: 80,
   },
-  transactionsHeader: {
+  wagersHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -213,7 +357,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     color: '#3D95CE',
   },
-  transactionItem: {
+  wagerItem: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -233,16 +377,21 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  transactionContent: {
+  wagerContent: {
     flex: 1,
   },
-  transactionHeader: {
+  wagerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   timeText: {
     fontSize: 12,
     color: '#999999',
+  },
+  statusText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#666666',
   },
   amountText: {
     fontWeight: '600',
@@ -268,7 +417,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Overlay background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: 'white',
@@ -278,15 +427,16 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    marginBottom: 10,
+    marginBottom: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   textInput: {
     height: 40,
     borderColor: '#cccccc',
     borderWidth: 1,
     borderRadius: 5,
-    marginBottom: 20,
+    marginBottom: 15,
     paddingLeft: 10,
   },
   submitButton: {
@@ -294,6 +444,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 5,
     alignItems: 'center',
+    marginTop: 10,
   },
   submitButtonText: {
     color: 'white',
@@ -308,6 +459,18 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: 'white',
+    fontSize: 16,
+  },
+  loadingIndicator: {
+    marginTop: 40,
+  },
+  noWagersContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  noWagersText: {
+    color: '#999999',
     fontSize: 16,
   },
 });
