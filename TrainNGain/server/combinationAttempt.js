@@ -56,57 +56,14 @@ function initializeDatabase() {
       user_id TEXT,
       amount REAL NOT NULL,
       bet_details TEXT,
-      FOREIGN KEY (user_id) REFERENCES Users(user_id)
+      friend_id TEXT, 
+      FOREIGN KEY (user_id) REFERENCES Users(user_id),
+      FOREIGN KEY (friend_id) REFERENCES Users(user_id)
     )`, (err) => {
       if (err) console.error('Error creating PendingBets table:', err.message);
     });
 
-    // Finished Bets table
-    db.run(`CREATE TABLE IF NOT EXISTS FinishedBets (
-      bet_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT,
-      amount REAL NOT NULL,
-      bet_details TEXT,
-      outcome TEXT,
-      FOREIGN KEY (user_id) REFERENCES Users(user_id)
-    )`, (err) => {
-      if (err) console.error('Error creating FinishedBets table:', err.message);
-    });
-
     console.log('All tables created or already exist.');
-
-    // Seed test users
-    db.get("SELECT COUNT(*) as count FROM Users", [], (err, row) => {
-      if (err) {
-        console.error('Error checking users:', err.message);
-      } else if (row.count === 0) {
-        console.log('Adding test users');
-        bcrypt.genSalt(10, (err, salt) => {
-          if (err) {
-            console.error('Error generating salt:', err.message);
-            return;
-          }
-          bcrypt.hash('password123', salt, (err, hash) => {
-            if (err) {
-              console.error('Error hashing password:', err.message);
-              return;
-            }
-            db.run(`INSERT INTO Users (user_id, balance, email, username, password, bio) 
-                    VALUES (?, ?, ?, ?, ?, ?)`,
-                    ['user1', 100, 'user1@gmail.com', 'John Doe', hash, 'Hi there!'],
-                    (err) => {
-                      if (err) console.error('Error inserting user1:', err.message);
-                    });
-            db.run(`INSERT INTO Users (user_id, balance, email, username, password, bio) 
-                    VALUES (?, ?, ?, ?, ?, ?)`,
-                    ['user2', 200, 'user2@gmail.com', 'Jane Smith', hash, 'Hello there!'],
-                    (err) => {
-                      if (err) console.error('Error inserting user2:', err.message);
-                    });
-          });
-        });
-      }
-    });
   });
 }
 
@@ -121,6 +78,7 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
+  // Balance Endpoint (example)
   if (req.url === '/api/balance' && req.method === 'GET') {
     verifyToken(req, res, () => {
       const userId = req.user.id;
@@ -139,6 +97,63 @@ const server = http.createServer((req, res) => {
       });
     });
   }
+
+  // Get Friends List Endpoint
+  if (req.url === '/api/friends' && req.method === 'GET') {
+    verifyToken(req, res, () => {
+      const userId = req.user.id;
+
+      db.all("SELECT u.user_id, u.username FROM Users u JOIN Friends f ON u.user_id = f.friend_id WHERE f.user_id = ?", [userId], (err, rows) => {
+        if (err) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ message: 'Database error' }));
+        } else {
+          res.writeHead(200);
+          res.end(JSON.stringify({ friends: rows }));
+        }
+      });
+    });
+  }
+
+  // Create Bet Endpoint (POST)
+  if (req.url === '/api/create-bet' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+    });
+
+    req.on('end', () => {
+      verifyToken(req, res, () => {
+        const { friendId, amount, betDetails } = JSON.parse(body);
+        const userId = req.user.id;
+
+        // Check if the user is friends with the selected friend
+        db.get("SELECT * FROM Friends WHERE user_id = ? AND friend_id = ?", [userId, friendId], (err, row) => {
+          if (err) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ message: 'Database error' }));
+          } else if (!row) {
+            // If not friends, return an error message
+            res.writeHead(400);
+            res.end(JSON.stringify({ message: 'You must be friends with the user to create a bet' }));
+          } else {
+            // Insert the bet into the PendingBets table
+            db.run("INSERT INTO PendingBets (user_id, amount, bet_details, friend_id) VALUES (?, ?, ?, ?)", 
+            [userId, amount, betDetails, friendId], (err) => {
+              if (err) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ message: 'Error creating bet' }));
+              } else {
+                res.writeHead(200);
+                res.end(JSON.stringify({ message: 'Bet created successfully' }));
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
 });
 
 server.listen(3000, () => {
