@@ -6,10 +6,12 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useAuth } from '../AuthContext'; // <-- ADJUST import path to your project structure
+import { useAuth } from '../AuthContext';
+import { useNavigation } from '@react-navigation/native'; // Import navigation hook
 
 export default function ProfileScreen() {
-  const { authFetch } = useAuth(); // <-- Pull in authFetch here
+  const { authFetch, logout } = useAuth(); // Add logout from useAuth
+  const navigation = useNavigation(); // Add navigation hook
   const [userData, setUserData] = useState({
     balance: null,
     email: null,
@@ -46,6 +48,19 @@ export default function ProfileScreen() {
 
     fetchUserData();
   }, [authFetch]);
+
+  // Handle logout function
+  const handleLogout = async () => {
+    try {
+      await logout(); // Call the logout function from useAuth
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }] // Navigate to Login screen
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -108,25 +123,17 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="shield-checkmark-outline" size={24} color="#388E3C" /> {/* Green icon */}
-              <ThemedText style={styles.optionText}>Privacy & Security</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.optionItem}>
               <Ionicons name="notifications-outline" size={24} color="#388E3C" /> {/* Green icon */}
               <ThemedText style={styles.optionText}>Notifications</ThemedText>
               <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem}>
-              <Ionicons name="help-circle-outline" size={24} color="#388E3C" /> {/* Green icon */}
-              <ThemedText style={styles.optionText}>Help & Support</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color="#388E3C" /> {/* Green chevron */}
-            </TouchableOpacity>
           </ThemedView>
 
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={handleLogout} // Add onPress handler
+          >
             <ThemedText style={styles.logoutText}>Log Out</ThemedText>
           </TouchableOpacity>
         </>
