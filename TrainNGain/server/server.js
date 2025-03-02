@@ -279,33 +279,6 @@ const server = http.createServer((req, res) => {
   
     applyAuth(req, res);
   }
-
-  else if (req.url === '/api/friends' && req.method === 'GET') {
-    // Protected route
-    const applyAuth = (req, res, next) => {
-      verifyToken(req, res, () => {
-        const userId = req.user.id; // Get user ID from token
-    
-        db.all(
-          `SELECT * FROM Friends WHERE user_id = ? AND friend_id != ?`, // Use != to exclude user_id
-          [userId, userId], // Bind userId to both parameters
-          (err, rows) => {
-            if (err) {
-              console.error('Database error:', err.message);
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ message: 'Database error' }));
-            } else {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ friends: rows })); // Returning the list of users
-            }
-          }
-        );
-      });
-    };
-    
-    // Apply auth middleware
-    applyAuth(req, res);        
-  }  
   
  else if (req.url === '/api/friends' && req.method === 'GET') {
   const applyAuth = (req, res, next) => {
@@ -326,8 +299,6 @@ const server = http.createServer((req, res) => {
             const formattedFriends = rows.map(row => ({
               id: row.friend_id,
               name: row.username, // Now using the actual username from the Users table
-              avatar: 'https://placekitten.com/100/100',
-              isFavorite: false
             }));
       
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -347,9 +318,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 });
-
-// Setup authentication routes
-setupAuthRoutes(server, db);
 
 // Setup wager routes
 setupWagerRoutes(server, db);

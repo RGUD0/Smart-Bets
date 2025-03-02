@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../AuthContext';
-import { useAuth } from '../AuthContext';
 
 const FriendsScreen = () => {
-  const [friends, setFriends] = useState([]);
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { authFetch } = useAuth(); // <-- Access authFetch from context
@@ -89,7 +86,7 @@ const FriendsScreen = () => {
           <View style={styles.friendItem}>
             <Image source={{ uri: item.avatar }} style={styles.avatar} />
             <View style={styles.friendInfo}>
-              <Text style={styles.friendName}>{item.name}</Text>
+              <Text style={styles.friendName}>{item.name }</Text>
               <Text style={styles.friendStatus}>{item.status}</Text>
             </View>
             <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
@@ -131,7 +128,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDDDDD',
   },
   addButton: {
-    backgroundColor: '#28A745',  // Green color here
+    backgroundColor: '#3D95CE',
     borderRadius: 8,
     width: 50,
     justifyContent: 'center',
@@ -168,11 +165,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888888',
   },
-  // Update the icon colors for favorite and remove button
-  addButtonIcon: {
-    color: 'white',
-  },
 });
 
 export default FriendsScreen;
-

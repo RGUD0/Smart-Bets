@@ -8,6 +8,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../AuthContext';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import FriendSelector from '../friendSelecter';
+
+
 
 // Define the wager type
 interface Wager {
@@ -353,7 +356,7 @@ const openResolveModal = (wager: Wager) => {
             />
           </TouchableOpacity>
           <ThemedView style={styles.headerTitleContainer}>
-            <ThemedText type="title" style={styles.headerTitle}>Pinky Promises</ThemedText>
+            <ThemedText type="title" style={styles.headerTitle}>Smart Bets</ThemedText>
             <ThemedText style={styles.headerSubtitle}>Growing healthy habits with friends!</ThemedText>
           </ThemedView>
           <TouchableOpacity onPress={() => setNotificationsModalVisible(true)}>
@@ -421,13 +424,8 @@ const openResolveModal = (wager: Wager) => {
           <View style={styles.modalContent}>
             <ThemedText style={styles.modalTitle}>Create New Promise</ThemedText>
             
-            <ThemedText>Friend ID</ThemedText>
-            <TextInput
-              style={styles.textInput}
-              placeholder="User ID of friend"
-              value={wagerDetails.receiverId}
-              onChangeText={(text) => setWagerDetails({...wagerDetails, receiverId: text})}
-            />
+            <ThemedText>Select Friend</ThemedText>
+            <FriendSelector></FriendSelector>
             
             <ThemedText>Description</ThemedText>
             <TextInput
