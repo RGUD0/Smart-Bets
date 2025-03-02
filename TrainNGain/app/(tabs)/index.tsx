@@ -329,10 +329,12 @@ const styles = StyleSheet.create({
   },
   transactionsHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between', // Ensures the text and button are spaced out
+    marginBottom: 10, // Optional: space below the header
+    paddingHorizontal: 16, // Added horizontal padding for better spacing from edges
+    alignItems: 'center', // Vertically align the content to the center
   },
+  
   seeAllText: {
     color: '#4CAF50', // Green color code
   },
@@ -342,6 +344,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
     alignItems: 'center',
+  },
+  activityContent: {
+    paddingHorizontal: 16, // Added padding to content area
+    paddingTop: 10,        // Optional: space at the top of the content area
+  },
+  recentActivityContainer: {
+    paddingHorizontal: 20, // Adds space on both sides of the container
+    paddingVertical: 10,   // Optional: adds space vertically for better separation
+    borderRadius: 8,       // Optional: rounded corners for a smoother look
+    backgroundColor: '#FFF', // Example background color (you can change it to match your design)
+    shadowColor: '#000',   // Optional: adds a shadow effect for visual separation
+    shadowOpacity: 0.1,    // Optional: shadow intensity
+    shadowRadius: 5,       // Optional: shadow blur radius
+    elevation: 3,          // Optional: elevation for Android shadow effect
   },
   avatarContainer: {
     width: 40,
@@ -365,12 +381,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeText: {
-    fontSize: 12,
-    color: '#999999',
+    color: '#888', // Light gray for the time
+    fontSize: 12, // Adjust the font size if needed
+    marginLeft: 100, // Adds space between time and transaction details
   },
+  
   amountText: {
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginRight: 10, // Adds space between point numbers and other elements
   },
+  
   floatingActionButton: {
     position: 'absolute',
     left: '50%',
