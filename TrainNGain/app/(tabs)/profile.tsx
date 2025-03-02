@@ -10,26 +10,35 @@ import { StatusBar } from 'expo-status-bar';
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
     balance: null,
-    email: 'user@example.com',
-    username: 'John Doe'
+    email: null,
+    username: null,
+    bio: null
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // In a real app, you would fetch this data from your API
-        const response = await fetch('http://localhost:5001/api/balance');
+        // Fetch complete user profile data from your API
+        const response = await fetch('http://localhost:5001/api/user/profile');
         const data = await response.json();
         
-        if (data && typeof data.balance === "number") {
-          setUserData(prevState => ({
-            ...prevState,
-            balance: data.balance
-          }));
+        console.log("Fetched user data:", data); // Log for debugging
+        
+        if (data && data.user) {
+          // Update all user data fields
+          setUserData({
+            balance: data.user.balance || null,
+            email: data.user.email || 'user@example.com',
+            username: data.user.username || 'John Doe',
+            bio: data.user.bio || 'Hi there! I love building apps with React Native and exploring new technologies.'
+          });
+        } else {
+          console.error("Invalid user data format:", data);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+        // Keep default values in case of error
       } finally {
         setLoading(false);
       }
@@ -52,66 +61,72 @@ export default function ProfileScreen() {
         </ThemedView>
       </ThemedView>
 
-      {/* Profile Card */}
-      <ThemedView style={styles.profileCard}>
-        <ThemedView style={styles.profileHeader}>
-          <Image 
-            source={require('@/assets/images/partial-react-logo.png')} 
-            style={styles.profilePic} 
-          />
-          <ThemedView style={styles.profileInfo}>
-            <ThemedText type="title">{userData.username}</ThemedText>
-            <ThemedText style={styles.emailText}>{userData.email}</ThemedText>
+      {loading ? (
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3D95CE" />
+          <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+        </ThemedView>
+      ) : (
+        <>
+          {/* Profile Card */}
+          <ThemedView style={styles.profileCard}>
+            <ThemedView style={styles.profileHeader}>
+              <Image 
+                source={require('@/assets/images/partial-react-logo.png')} 
+                style={styles.profilePic} 
+              />
+              <ThemedView style={styles.profileInfo}>
+                <ThemedText type="title">{userData.username}</ThemedText>
+                <ThemedText style={styles.emailText}>{userData.email}</ThemedText>
+                <ThemedText style={styles.bioText}>{userData.bio}</ThemedText>
+              </ThemedView>
+            </ThemedView>
+
+            {/* Balance Section */}
+            <ThemedView style={styles.balanceSection}>
+              <ThemedText type="defaultSemiBold">Current Balance</ThemedText>
+              <ThemedText type="title">{userData.balance ? `$${userData.balance}` : 'N/A'}</ThemedText>
+            </ThemedView>
           </ThemedView>
-        </ThemedView>
 
-        {/* Balance Section */}
-        <ThemedView style={styles.balanceSection}>
-          <ThemedText type="defaultSemiBold">Current Balance</ThemedText>
-          {loading ? (
-            <ActivityIndicator size="small" color="#3D95CE" />
-          ) : (
-            <ThemedText type="title">{userData.balance ? `$${userData.balance}` : 'N/A'}</ThemedText>
-          )}
-        </ThemedView>
-      </ThemedView>
-
-      {/* Profile Options */}
-      <ThemedView style={styles.optionsContainer}>
-        <TouchableOpacity style={styles.optionItem}>
-          <Ionicons name="person-outline" size={24} color="#3D95CE" />
-          <ThemedText style={styles.optionText}>Edit Profile</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color="#999999" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.optionItem}>
-          <Ionicons name="card-outline" size={24} color="#3D95CE" />
-          <ThemedText style={styles.optionText}>Payment Methods</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color="#999999" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.optionItem}>
-          <Ionicons name="shield-checkmark-outline" size={24} color="#3D95CE" />
-          <ThemedText style={styles.optionText}>Privacy & Security</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color="#999999" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.optionItem}>
-          <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
-          <ThemedText style={styles.optionText}>Notifications</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color="#999999" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.optionItem}>
-          <Ionicons name="help-circle-outline" size={24} color="#3D95CE" />
-          <ThemedText style={styles.optionText}>Help & Support</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color="#999999" />
-        </TouchableOpacity>
-      </ThemedView>
-      
-      <TouchableOpacity style={styles.logoutButton}>
-        <ThemedText style={styles.logoutText}>Log Out</ThemedText>
-      </TouchableOpacity>
+          {/* Profile Options */}
+          <ThemedView style={styles.optionsContainer}>
+            <TouchableOpacity style={styles.optionItem}>
+              <Ionicons name="person-outline" size={24} color="#3D95CE" />
+              <ThemedText style={styles.optionText}>Edit Profile</ThemedText>
+              <Ionicons name="chevron-forward" size={20} color="#999999" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem}>
+              <Ionicons name="create-outline" size={24} color="#3D95CE" />
+              <ThemedText style={styles.optionText}>Edit Bio</ThemedText>
+              <Ionicons name="chevron-forward" size={20} color="#999999" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem}>
+              <Ionicons name="shield-checkmark-outline" size={24} color="#3D95CE" />
+              <ThemedText style={styles.optionText}>Privacy & Security</ThemedText>
+              <Ionicons name="chevron-forward" size={20} color="#999999" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem}>
+              <Ionicons name="notifications-outline" size={24} color="#3D95CE" />
+              <ThemedText style={styles.optionText}>Notifications</ThemedText>
+              <Ionicons name="chevron-forward" size={20} color="#999999" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem}>
+              <Ionicons name="help-circle-outline" size={24} color="#3D95CE" />
+              <ThemedText style={styles.optionText}>Help & Support</ThemedText>
+              <Ionicons name="chevron-forward" size={20} color="#999999" />
+            </TouchableOpacity>
+          </ThemedView>
+          
+          <TouchableOpacity style={styles.logoutButton}>
+            <ThemedText style={styles.logoutText}>Log Out</ThemedText>
+          </TouchableOpacity>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -136,6 +151,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: '#3D95CE',
     fontSize: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#666666',
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
@@ -165,6 +189,13 @@ const styles = StyleSheet.create({
   emailText: {
     color: '#666666',
     marginTop: 4,
+  },
+  bioText: {
+    color: '#666666',
+    marginTop: 10,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 20,
   },
   balanceSection: {
     borderTopWidth: 1,
