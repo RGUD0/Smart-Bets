@@ -86,6 +86,7 @@ const NotificationItem = ({ item }) => (
   </ThemedView>
 );
 
+
 export default function HomeScreen() {
   const { authFetch, user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
@@ -181,6 +182,76 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchPendingWagers();
   }, []);
+  // Add these handler functions for wagers
+const handleAcceptWager = async (wagerId: string) => {
+  try {
+    const response = await authFetch('/api/wagers/respond', {
+      method: 'PUT',
+      body: JSON.stringify({
+        wager_id: wagerId,
+        action: 'accept'
+      })
+    });
+    
+    console.log('Wager accepted:', response);
+    
+    // Refresh wagers and balance
+    fetchPendingWagers();
+    fetchBalance();
+  } catch (error) {
+    console.error('Error accepting wager:', error);
+  }
+};
+
+
+const handleRejectWager = async (wagerId: string) => {
+  try {
+    const response = await authFetch('/api/wagers/respond', {
+      method: 'PUT',
+      body: JSON.stringify({
+        wager_id: wagerId,
+        action: 'reject'
+      })
+    });
+    
+    console.log('Wager rejected:', response);
+    
+    // Refresh wagers and balance
+    fetchPendingWagers();
+    fetchBalance();
+  } catch (error) {
+    console.error('Error rejecting wager:', error);
+  }
+};
+
+const handleResolveWager = async (wagerId: string, winnerId: string) => {
+  try {
+    const response = await authFetch('/api/wagers/resolve', {
+      method: 'PUT',
+      body: JSON.stringify({
+        wager_id: wagerId,
+        winner_id: winnerId
+      })
+    });
+    
+    console.log('Wager resolved:', response);
+    
+    // Refresh wagers and balance
+    fetchPendingWagers();
+    fetchBalance();
+  } catch (error) {
+    console.error('Error resolving wager:', error);
+  }
+};
+
+// Add this function to open the resolve modal
+const [resolveModalVisible, setResolveModalVisible] = useState(false);
+const [selectedWager, setSelectedWager] = useState<Wager | null>(null);
+
+const openResolveModal = (wager: Wager) => {
+  setSelectedWager(wager);
+  setResolveModalVisible(true);
+};
 
   // Function to fetch balance
   const fetchBalance = async () => {
