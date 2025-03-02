@@ -353,10 +353,10 @@ function setupWagerRoutes(server, db) {
                     return res.end(JSON.stringify({ message: 'Invalid winner ID' }));
                   }
                   
-                  // Update wager status
+                  // Update wager status without adding winner_id field
                   db.run(
-                    "UPDATE wagers SET status = 'completed', winner_id = ? WHERE wager_id = ?",
-                    [winner_id, wager_id],
+                    "UPDATE wagers SET status = 'completed' WHERE wager_id = ?",
+                    [wager_id],
                     function(err) {
                       if (err) {
                         console.error('Database error:', err.message);
@@ -418,8 +418,7 @@ function initializeWagersTable(db) {
     wager_amount INTEGER,
     expiration_time TEXT,
     save_time TEXT,
-    status TEXT,
-    winner_id TEXT
+    status TEXT
   )`, (err) => {
     if (err) {
       console.error('Error creating wagers table:', err.message);
